@@ -12,7 +12,7 @@ export function ProductCard({ p }: { p: CatalogProduct }) {
   const quickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     const v = [...p.variants].sort((a, b) => Number(a.size) - Number(b.size)).find((x) => x.stock > 0);
-    if (!v) return toast.error("Sold out");
+    if (!v) { toast.error("Sold out"); return; }
     cart.add({ variantId: v.id, productId: p.id, slug: p.slug, name: p.name, size: v.size, price: p.price, image: p.images[0] ?? null, storeName: p.store?.name ?? "", maxStock: v.stock });
     toast.success(`${p.name} (EU ${v.size}) added to cart`);
     cart.setOpen(true);

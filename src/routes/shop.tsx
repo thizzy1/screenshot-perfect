@@ -10,7 +10,7 @@ const str = (v: unknown) => (typeof v === "string" && v.length ? v : undefined);
 
 export const Route = createFileRoute("/shop")({
   validateSearch: (s: Record<string, unknown>): CatalogFilters => ({
-    q: str(s.q), category: str(s.category), gender: str(s.gender), collection: str(s.collection), sort: str(s.sort),
+    q: str(s["q"]), category: str(s["category"]), gender: str(s["gender"]), collection: str(s["collection"]), sort: str(s["sort"]),
   }),
   head: () => ({
     meta: [

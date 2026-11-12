@@ -48,7 +48,7 @@ function ProductPage() {
   const variants = [...p.variants].sort((a, b) => Number(a.size) - Number(b.size));
   const selected = variants.find((v) => v.size === size);
   const add = (buy: boolean) => {
-    if (!selected) return toast.error("Please choose a size");
+    if (!selected) { toast.error("Please choose a size"); return; }
     cart.add({ variantId: selected.id, productId: p.id, slug: p.slug, name: p.name, size: selected.size, price: p.price, image: p.images[0] ?? null, storeName: p.store?.name ?? "", maxStock: selected.stock });
     if (buy) navigate({ to: "/checkout" });
     else { toast.success("Added to cart"); cart.setOpen(true); }

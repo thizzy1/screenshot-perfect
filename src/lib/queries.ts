@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const productSelect =
   "id, name, slug, price, images, gender, collection, featured, created_at, description, specs, category:categories(name, slug), store:stores(name, slug), variants:product_variants(id, size, stock)";
 
-export type CatalogFilters = { q?: string; category?: string; gender?: string; collection?: string; sort?: string };
+export type CatalogFilters = { q?: string | undefined; category?: string | undefined; gender?: string | undefined; collection?: string | undefined; sort?: string | undefined };
 
 async function fetchCatalog(f: CatalogFilters) {
       let q = supabase.from("products").select(productSelect).eq("is_active", true);
