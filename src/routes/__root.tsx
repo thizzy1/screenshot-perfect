@@ -9,6 +9,11 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { Toaster } from "@/components/ui/sonner";
+import { CartProvider } from "@/lib/cart";
+import { AuthProvider } from "@/hooks/useAuth";
+import { SiteHeader, SiteFooter } from "@/components/store/SiteHeader";
+import { CartSheet } from "@/components/store/CartSheet";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -81,14 +86,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Seaport | Premium Sportswear Marketplace" },
+      { name: "description", content: "Shop ANTA KAI basketball shoes, running gear and apparel from verified sellers on Seaport." },
+      { property: "og:title", content: "Seaport | Premium Sportswear Marketplace" },
+      { property: "og:description", content: "Shop ANTA KAI basketball shoes, running gear and apparel from verified sellers." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
@@ -96,6 +99,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap" },
     ],
   }),
   shellComponent: RootShell,
@@ -120,11 +126,27 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <AuthProvider
+        onChange={(event) => {
+          router.invalidate();
+          if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+        }}
+      >
+        <CartProvider>
+          <SiteHeader />
+          <main className="min-h-[60vh]">
+            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+            <Outlet />
+          </main>
+          <SiteFooter />
+          <CartSheet />
+          <Toaster richColors position="top-center" />
+        </CartProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
