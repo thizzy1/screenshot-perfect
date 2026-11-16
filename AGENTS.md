@@ -28,3 +28,7 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+- Keep private account, checkout, order, seller and admin pages under the client-only authenticated layout so sessions are checked before rendering.
+- Place checkout and payment calls in authenticated server functions; database functions own transactional stock and order totals.
+- Keep shared checkout validation and order-transition rules in the commerce module so tests and screens use the same rules.

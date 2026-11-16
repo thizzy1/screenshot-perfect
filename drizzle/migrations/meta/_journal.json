@@ -15,6 +15,13 @@
       "when": 1794442269579,
       "tag": "0001_product_images_storage_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794789247908,
+      "tag": "0002_secure_marketplace_operations",
+      "breakpoints": true
     }
   ]
 }
