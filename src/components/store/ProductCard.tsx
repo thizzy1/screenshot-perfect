@@ -5,6 +5,8 @@ import { formatIDR } from "@/lib/format";
 import { useCart } from "@/lib/cart";
 import type { CatalogProduct } from "@/lib/queries";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from '@/components/ui/button';
+import { sizeLabel } from '@/lib/sizing';
 
 export function ProductCard({ p }: { p: CatalogProduct }) {
   const cart = useCart();
@@ -14,7 +16,7 @@ export function ProductCard({ p }: { p: CatalogProduct }) {
     const v = [...p.variants].sort((a, b) => Number(a.size) - Number(b.size)).find((x) => x.stock > 0);
     if (!v) { toast.error("Sold out"); return; }
     cart.add({ variantId: v.id, productId: p.id, slug: p.slug, name: p.name, size: v.size, price: p.price, image: p.images[0] ?? null, storeName: p.store?.name ?? "", maxStock: v.stock });
-    toast.success(`${p.name} (EU ${v.size}) added to cart`);
+    toast.success(`${p.name} (${sizeLabel(v.size)}) added to cart`);
     cart.setOpen(true);
   };
   return (
@@ -33,9 +35,9 @@ export function ProductCard({ p }: { p: CatalogProduct }) {
           <h3 className="truncate text-xl font-bold uppercase">{p.name}</h3>
           <p className="font-semibold">{formatIDR(p.price)}</p>
         </div>
-        <button onClick={quickAdd} aria-label={`Add ${p.name} to cart`} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-110">
+        <Button size="icon" disabled={stock === 0} onClick={quickAdd} aria-label={`Add ${p.name} to cart`} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-110">
           <Plus className="h-5 w-5" />
-        </button>
+        </Button>
       </div>
     </Link>
   );

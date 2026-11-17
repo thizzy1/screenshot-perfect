@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProductCard } from "@/components/store/ProductCard";
 import { cn } from "@/lib/utils";
+import { sizesFor, type SizeGroup } from '@/lib/sizing';
 
 export const Route = createFileRoute("/product/$slug")({
   head: ({ params }) => {
@@ -36,6 +37,7 @@ function ProductPage() {
   const navigate = useNavigate();
   const [size, setSize] = useState<string | null>(null);
   const [img, setImg] = useState(0);
+  const [group, setGroup] = useState<SizeGroup>('adult');
 
   if (isLoading) return <div className="mx-auto grid max-w-[1400px] gap-10 px-4 py-10 md:grid-cols-2"><Skeleton className="aspect-square rounded-3xl" /><div className="space-y-4"><Skeleton className="h-12 w-3/4" /><Skeleton className="h-6 w-32" /><Skeleton className="h-32" /></div></div>;
   if (!p) return (
@@ -45,10 +47,11 @@ function ProductPage() {
     </div>
   );
 
-  const variants = [...p.variants].sort((a, b) => Number(a.size) - Number(b.size));
+  const isApparel = p.category?.slug === 'apparel';
+  const variants = sizesFor(isApparel ? 'apparel' : group).map(value => p.variants.find(v => v.size === value) ?? { id: value, size: value, stock: 0 });
   const selected = variants.find((v) => v.size === size);
   const add = (buy: boolean) => {
-    if (!selected) { toast.error("Please choose a size"); return; }
+    if (!selected || selected.stock < 1) { toast.error("Please choose an available size"); return; }
     cart.add({ variantId: selected.id, productId: p.id, slug: p.slug, name: p.name, size: selected.size, price: p.price, image: p.images[0] ?? null, storeName: p.store?.name ?? "", maxStock: selected.stock });
     if (buy) navigate({ to: "/checkout" });
     else { toast.success("Added to cart"); cart.setOpen(true); }
@@ -80,19 +83,20 @@ function ProductPage() {
           </div>
           <p className="text-muted-foreground">{p.description}</p>
           <div>
-            <div className="mb-2 flex justify-between text-sm font-semibold"><span>Select size (EU)</span>{selected && <span className="text-muted-foreground">{selected.stock} in stock</span>}</div>
+            {!isApparel && <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Age group"><Button variant={group === 'adult' ? 'default' : 'outline'} onClick={() => { setGroup('adult'); setSize(null); }}>Adult · EU 39–45</Button><Button variant={group === 'kids' ? 'default' : 'outline'} onClick={() => { setGroup('kids'); setSize(null); }}>Kids · EU 29–37</Button></div>}
+            <div className="mb-2 flex justify-between text-sm font-semibold"><span>{isApparel ? 'Select size' : 'Select size (EU)'}</span>{selected && <span className="text-muted-foreground">{selected.stock} in stock</span>}</div>
             <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
               {variants.map((v) => (
-                <button key={v.id} disabled={v.stock === 0} onClick={() => setSize(v.size)}
-                  className={cn("h-12 rounded-xl border font-semibold transition", size === v.size ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-foreground", v.stock === 0 && "cursor-not-allowed line-through opacity-40")}>
+                <Button key={v.id} variant="outline" aria-label={`Size ${v.size}${v.stock === 0 ? ', unavailable' : ''}`} disabled={v.stock === 0} onClick={() => setSize(v.size)}
+                  className={cn("h-12 rounded-md border font-semibold transition", size === v.size ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-foreground", v.stock === 0 && "cursor-not-allowed line-through opacity-40")}>
                   {v.size}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Button size="lg" className="flex-1" onClick={() => add(false)}>Add to Cart</Button>
-            <Button size="lg" variant="brand" className="flex-1" onClick={() => add(true)}>Buy Now</Button>
+            <Button size="lg" className="flex-1" disabled={!selected || selected.stock === 0} onClick={() => add(false)}>Add to Cart</Button>
+            <Button size="lg" variant="brand" className="flex-1" disabled={!selected || selected.stock === 0} onClick={() => add(true)}>Buy Now</Button>
           </div>
           <div className="grid gap-3 text-sm sm:grid-cols-2">
             <div className="flex items-center gap-2 rounded-2xl bg-card p-3"><Truck className="h-4 w-4" /> Ships across Indonesia</div>

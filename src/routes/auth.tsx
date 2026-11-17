@@ -18,20 +18,20 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [role, setRole] = useState('customer');
-  const { user, loading } = useAuth();
+  const { user, loading, roles } = useAuth();
   const navigate = useNavigate();
   const { redirect: destination } = Route.useSearch();
-  useEffect(() => { if (!loading && user) fetchRoles(user.id).then(roles => {
+  useEffect(() => { if (!loading && user) {
     const path = safeDestination(destination ?? sessionStorage.getItem('seaport-return') ?? undefined) ?? homeForRoles(roles);
     sessionStorage.removeItem('seaport-return');
     navigate({ to: path });
-  }); }, [user, loading, destination, navigate]);
+  } }, [user, loading, roles, destination, navigate]);
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); setBusy(true); setNotice('');
-    const f = new FormData(e.currentTarget); const email = String(f.get('email')); const password = String(f.get('password'));
+    const f = new FormData(e.currentTarget); const email = String(f.get('email')).trim(); const password = String(f.get('password'));
     try {
       if (mode === 'reset') { const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` }); if (error) throw error; setNotice('Check your email for a password reset link.'); }
-      else if (mode === 'signup') { const { error, data } = await supabase.auth.signUp({ email, password, options: { data: { full_name: String(f.get('name')), role }, emailRedirectTo: `${window.location.origin}/auth` } }); if (error) throw error; if (!data.session) setNotice('Check your email to confirm your account, then sign in.'); }
+      else if (mode === 'signup') { if (destination) sessionStorage.setItem('seaport-return', destination); const { error, data } = await supabase.auth.signUp({ email, password, options: { data: { role }, emailRedirectTo: window.location.origin } }); if (error) throw error; if (!data.session) setNotice('Check your email to confirm your account, then sign in.'); }
       else { const { error } = await supabase.auth.signInWithPassword({ email, password }); if (error) throw error; }
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Sign-in failed'); } finally { setBusy(false); }
   }
@@ -43,7 +43,6 @@ function AuthPage() {
   return <div className="mx-auto max-w-md px-4 py-16"><p className="mb-3 text-sm font-semibold uppercase text-brand">Seaport membership</p><h1 className="mb-8 text-5xl font-bold uppercase">{mode === 'signup' ? 'Join Seaport' : mode === 'reset' ? 'Reset password' : 'Welcome back'}</h1>
     {mode !== 'reset' && <div className="mb-6 grid gap-3"><Button variant="outline" disabled={busy} onClick={() => social('google')}>Continue with Google</Button><Button variant="outline" disabled={busy} onClick={() => social('lovable')}>Sign in with Lovable</Button><div className="py-2 text-center text-xs text-muted-foreground">OR</div></div>}
     <form onSubmit={submit} className="space-y-5">
-      {mode === 'signup' && <div><Label htmlFor="name">Full name</Label><Input id="name" name="name" autoComplete="name" required minLength={2}/></div>}
       <div><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" autoComplete="email" required/></div>
       {mode !== 'reset' && <div><Label htmlFor="password">Password</Label><Input id="password" name="password" type="password" required minLength={8} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}/></div>}
       {mode === 'signup' && <fieldset className="flex gap-6"><legend className="mb-2 text-sm font-medium">Account type</legend>{['customer','seller'].map(r => <label key={r} className="flex items-center gap-2 capitalize"><input type="radio" name="role" checked={role === r} onChange={() => setRole(r)}/>{r}</label>)}</fieldset>}

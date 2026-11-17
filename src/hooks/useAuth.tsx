@@ -31,21 +31,26 @@ export function AuthProvider({ children, onChange }: { children: ReactNode; onCh
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
-      setSession(s);
-      if (s?.user) {
-        setTimeout(() => fetchRoles(s.user.id).then(setRoles), 0);
-      } else {
-        setRoles([]);
+    let active = true;
+    let revision = 0;
+    const hydrate = async (s: Session | null) => {
+      const current = ++revision;
+      if (active) { setSession(s); setRoles([]); setLoading(true); }
+      try {
+        const nextRoles = s?.user ? await fetchRoles(s.user.id) : [];
+        if (active && current === revision) setRoles(nextRoles);
+      } finally {
+        if (active && current === revision) setLoading(false);
       }
+    };
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === 'PASSWORD_RECOVERY') sessionStorage.setItem('seaport-recovery', 'true');
+      if (event === 'TOKEN_REFRESHED') { setSession(s); return; }
+      setTimeout(() => { void hydrate(s); }, 0);
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") onChange?.(event);
     });
-    supabase.auth.getSession().then(async ({ data }) => {
-      setSession(data.session);
-      if (data.session?.user) setRoles(await fetchRoles(data.session.user.id));
-      setLoading(false);
-    });
-    return () => sub.subscription.unsubscribe();
+    // INITIAL_SESSION hydrates the UI; protected access is independently verified with getUser().
+    return () => { active = false; sub.subscription.unsubscribe(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

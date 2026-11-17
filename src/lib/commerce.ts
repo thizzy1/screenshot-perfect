@@ -8,6 +8,18 @@ export const checkoutSchema = z.object({
   method: z.enum(["qris", "bank_transfer", "ewallet", "cod"]),
   channel: z.string(),
 });
+export const paymentChannels = {
+  qris: ['QRIS'], bank_transfer: ['BCA', 'BNI', 'BRI', 'Mandiri'],
+  ewallet: ['GoPay', 'OVO', 'DANA', 'ShopeePay'], cod: ['COD'],
+} as const;
+export const validatedCheckoutSchema = checkoutSchema.superRefine((data, ctx) => {
+  if (!(paymentChannels[data.method] as readonly string[]).includes(data.channel)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['channel'], message: 'Choose a valid payment channel' });
+  }
+  if (new Set(data.items.map(item => item.variant_id)).size !== data.items.length) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['items'], message: 'Duplicate cart item' });
+  }
+});
 export function safeDestination(value?: string) {
   return value && /^\/(?!\/)/.test(value) && !value.includes("\\") && !value.startsWith("/auth") ? value : undefined;
 }

@@ -32,3 +32,4 @@ use the editor.
 - Keep private account, checkout, order, seller and admin pages under the client-only authenticated layout so sessions are checked before rendering.
 - Place checkout and payment calls in authenticated server functions; database functions own transactional stock and order totals.
 - Keep shared checkout validation and order-transition rules in the commerce module so tests and screens use the same rules.
+- Keep age-group sizing in the shared sizing module and product specs; numeric shoe sizes and apparel labels use a shared display formatter.

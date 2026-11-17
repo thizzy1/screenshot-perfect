@@ -1,4 +1,8 @@
 # Seaport completion
+- [ ] Fix email-only signup, sign-in and session handling
+- [ ] Adult EU 39–45 and kids EU 29–37 sizing
+- [ ] Add Nike club jersey, Nike shorts and Li-Ning Wade catalog entries with researched pricing
+- [ ] Real payment gateway: waiting for business country and provider setup
 - [ ] Sign-in, signup and protected account pages
 - [ ] Restore starter catalog visibility
 - [ ] Checkout, simulated payments, invoices and order history
