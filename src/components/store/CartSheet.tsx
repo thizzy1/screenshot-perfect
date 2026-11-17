@@ -4,17 +4,23 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
 import { formatIDR } from "@/lib/format";
+import { productImageBlendClass, productImageFrameClass } from "@/lib/product-image";
+import { sizeLabel } from "@/lib/sizing";
 
 export function CartLines({ compact = false }: { compact?: boolean }) {
   const cart = useCart();
   return (
     <ul className="divide-y">
       {cart.items.map((i) => (
-        <li key={i.variantId} className="flex gap-3 py-4">
-          {i.image && <img src={i.image} alt={i.name} className="h-20 w-20 rounded-2xl bg-muted object-cover" />}
+        <li key={i.variantId} className="flex min-w-0 gap-3 overflow-hidden py-4">
+          {i.image && (
+            <div className={`h-20 w-20 shrink-0 overflow-hidden rounded-2xl ${productImageFrameClass}`}>
+              <img src={i.image} alt={i.name} className={`h-full w-full rounded-2xl object-contain p-1 ${productImageBlendClass(i.image)}`} />
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <p className="truncate font-bold uppercase">{i.name}</p>
-            <p className="text-xs text-muted-foreground">EU {i.size} · {i.storeName}</p>
+            <p className="text-xs text-muted-foreground">{sizeLabel(i.size)} · {i.storeName}</p>
             <p className="text-sm font-semibold">{formatIDR(i.price)}</p>
             <div className="mt-2 flex items-center gap-2">
               <Button size="icon" variant="outline" className="h-7 w-7" aria-label="Decrease" onClick={() => cart.setQty(i.variantId, i.quantity - 1)} disabled={i.quantity <= 1}><Minus /></Button>
@@ -46,7 +52,7 @@ export function CartSheet() {
           </div>
         ) : (
           <>
-            <div className="flex-1 overflow-y-auto"><CartLines compact /></div>
+            <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto"><CartLines compact /></div>
             <div className="space-y-3 border-t pt-4">
               <div className="flex justify-between font-semibold"><span>Subtotal</span><span>{formatIDR(cart.subtotal)}</span></div>
               <Button asChild size="lg" className="w-full" onClick={() => cart.setOpen(false)}><Link to="/checkout">Checkout</Link></Button>

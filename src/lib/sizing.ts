@@ -1,10 +1,32 @@
 export const adultShoeSizes = ['39', '40', '41', '42', '43', '44', '45'] as const;
 export const kidsShoeSizes = ['29', '30', '31', '32', '33', '34', '35', '36', '37'] as const;
 export const apparelSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'] as const;
+export const oneSizeValue = 'One Size' as const;
 export type SizeGroup = 'adult' | 'kids' | 'apparel';
+export type CategorySizeMode = 'footwear' | 'apparel' | 'one-size';
+
+export function isAccessoriesCategory(categorySlug?: string | null): boolean {
+  const normalized = categorySlug?.trim().toLowerCase();
+  return normalized === 'accessory' || normalized === 'accessories';
+}
 
 export function sizesFor(group: SizeGroup): readonly string[] {
   return group === 'kids' ? kidsShoeSizes : group === 'apparel' ? apparelSizes : adultShoeSizes;
+}
+
+export function sizeModeForCategory(categorySlug?: string | null, explicitMode?: string | null): CategorySizeMode {
+  if (isAccessoriesCategory(categorySlug)) return 'one-size';
+  const normalized = (explicitMode ?? categorySlug ?? '').toLowerCase();
+  if (normalized === 'apparel') return 'apparel';
+  if (normalized === 'one-size' || normalized === 'equipment' || normalized === 'accessories') return 'one-size';
+  if (normalized === 'badminton' || normalized === 'cycling') return 'footwear';
+  return 'footwear';
+}
+
+export function sizeOptionsForMode(mode: CategorySizeMode, group: SizeGroup = 'adult'): readonly string[] {
+  if (mode === 'apparel') return apparelSizes;
+  if (mode === 'one-size') return [oneSizeValue];
+  return sizesFor(group);
 }
 
 export function sizeLabel(size: string | null) {

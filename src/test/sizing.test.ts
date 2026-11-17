@@ -7,6 +7,9 @@ import {
   kidsShoeSizeGuide,
   compareSizes,
   sortVariantSizes,
+  sizeModeForCategory,
+  isAccessoriesCategory,
+  oneSizeValue,
 } from '@/lib/sizing';
 
 describe('Product sizing', () => {
@@ -18,6 +21,17 @@ describe('Product sizing', () => {
 
   it('does not label apparel as European shoe sizes', () =>
     expect(sizeLabel('M')).toBe('M'));
+
+  it('forces accessories into one-size mode regardless of explicit metadata', () => {
+    expect(isAccessoriesCategory('Accessories')).toBe(true);
+    expect(sizeModeForCategory('accessories', 'footwear')).toBe('one-size');
+  });
+
+  it('supports one-size equipment variants in badminton and cycling', () => {
+    expect(sizeModeForCategory('badminton', 'one-size')).toBe('one-size');
+    expect(sizeModeForCategory('cycling', 'one-size')).toBe('one-size');
+    expect(sizeLabel(oneSizeValue)).toBe('One Size');
+  });
 
   it('provides comprehensive apparel size guide with chest width and length', () => {
     expect(apparelSizeGuide.length).toBe(6);

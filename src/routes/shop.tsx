@@ -6,6 +6,7 @@ import { catalogQuery, categoriesQuery, type CatalogFilters } from "@/lib/querie
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { isAccessoriesCategory, oneSizeValue } from "@/lib/sizing";
 
 const str = (v: unknown) => (typeof v === "string" && v.length ? v : undefined);
 const boolStr = (v: unknown) => (v === true || v === "true" ? "true" : undefined);
@@ -64,6 +65,10 @@ function Chip({
 
 const QUICK_SHOE_SIZES = ["39", "40", "41", "42", "43", "44", "45"] as const;
 const QUICK_APPAREL_SIZES = ["S", "M", "L", "XL"] as const;
+const FALLBACK_CATEGORIES = [
+  { id: "badminton", name: "Badminton", slug: "badminton" },
+  { id: "cycling", name: "Cycling", slug: "cycling" },
+] as const;
 
 function Shop() {
   const f = Route.useSearch();
@@ -73,6 +78,7 @@ function Shop() {
 
   const { data, isLoading } = useQuery(catalogQuery(f));
   const { data: cats } = useQuery(categoriesQuery);
+  const visibleCategories = [...(cats ?? []), ...FALLBACK_CATEGORIES.filter((c) => !(cats ?? []).some((existing) => existing.slug === c.slug))];
 
   const title = f.q
     ? `Results for “${f.q}”`
@@ -83,6 +89,8 @@ function Shop() {
     : "Shop all";
 
   const isApparelCategory = f.category === "apparel";
+  const isAccessories = isAccessoriesCategory(f.category);
+  const supportsOneSize = f.category === "badminton" || f.category === "cycling";
   const hasActiveFilters = Boolean(
     f.q ||
     f.category ||
@@ -109,11 +117,14 @@ function Shop() {
         <Chip active={!f.category} onClick={() => set({ category: undefined })}>
           All
         </Chip>
-        {cats?.map((c) => (
+        {visibleCategories.map((c) => (
           <Chip
             key={c.id}
             active={f.category === c.slug}
-            onClick={() => set({ category: f.category === c.slug ? undefined : c.slug })}
+            onClick={() => {
+              const nextCategory = f.category === c.slug ? undefined : c.slug;
+              set({ category: nextCategory, size: isAccessoriesCategory(nextCategory) ? undefined : f.size });
+            }}
           >
             {c.name}
           </Chip>
@@ -191,6 +202,9 @@ function Shop() {
 
         {/* Chips Ukuran Cepat */}
         <div className="flex flex-wrap items-center gap-1.5">
+          {isAccessories ? (
+            <span className="text-xs text-muted-foreground">Ukuran mengikuti deskripsi / spesifikasi produk.</span>
+          ) : <>
           <span className="text-xs font-medium text-muted-foreground mr-0.5">
             {isApparelCategory ? "Size:" : "Size (EU):"}
           </span>
@@ -227,6 +241,21 @@ function Shop() {
               {sz}
             </button>
           ))}
+          {supportsOneSize && (
+            <button
+              type="button"
+              onClick={() => set({ size: f.size === oneSizeValue ? undefined : oneSizeValue })}
+              className={cn(
+                "h-7 px-2 rounded-md border text-xs font-bold transition",
+                f.size === oneSizeValue
+                  ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                  : "border-border bg-card hover:border-foreground/60 text-foreground"
+              )}
+            >
+              One Size
+            </button>
+          )}
+          </>}
         </div>
 
         {hasActiveFilters && (

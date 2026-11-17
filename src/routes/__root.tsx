@@ -18,6 +18,8 @@ import { CartSheet } from "@/components/store/CartSheet";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { I18nProvider } from "@/lib/i18n";
+import { ThemeProvider } from "@/lib/theme";
 
 function NotFoundComponent() {
   return (
@@ -131,23 +133,27 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider
-        onChange={(event) => {
-          router.invalidate();
-          if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
-        }}
-      >
-        <CartProvider>
-          <SiteHeader />
-          <main className="min-h-[60vh]">
-            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            <Outlet />
-          </main>
-          <SiteFooter />
-          <CartSheet />
-          <Toaster richColors position="top-center" />
-        </CartProvider>
-      </AuthProvider>
+      <I18nProvider>
+        <ThemeProvider>
+          <AuthProvider
+            onChange={(event) => {
+              router.invalidate();
+              if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+            }}
+          >
+            <CartProvider>
+              <SiteHeader />
+              <main className="min-h-[60vh]">
+                {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+                <Outlet />
+              </main>
+              <SiteFooter />
+              <CartSheet />
+              <Toaster richColors position="top-center" />
+            </CartProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </I18nProvider>
     </QueryClientProvider>
   );
 }

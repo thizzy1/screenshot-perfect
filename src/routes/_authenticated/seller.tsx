@@ -35,11 +35,14 @@ import { Switch } from '@/components/ui/switch';
 import { formatIDR, errorMessage } from '@/lib/format';
 import { allowedOrderStatuses } from '@/lib/commerce';
 import { uploadProductImage } from '@/lib/upload';
+import { productImageBlendClass, productImageFrameClass } from '@/lib/product-image';
 import {
     kidsShoeSizes,
     adultShoeSizes,
     apparelSizes,
+    oneSizeValue,
     sizeLabel,
+    sizeModeForCategory,
     sortVariantSizes,
 } from '@/lib/sizing';
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip } from 'recharts';
@@ -64,6 +67,11 @@ interface VariantItem {
     size: string;
     stock: number;
 }
+
+const FALLBACK_CATEGORY_OPTIONS = [
+    { id: 'badminton', name: 'Badminton', slug: 'badminton' },
+    { id: 'cycling', name: 'Cycling', slug: 'cycling' },
+] as const;
 
 function Seller() {
     const { user, hasRole, loading: authLoading, refreshRoles } = useAuth();
@@ -94,6 +102,9 @@ function Seller() {
     // Variants and inventory state
     const [variantsList, setVariantsList] = useState<VariantItem[]>([]);
     const [customSize, setCustomSize] = useState<string>('');
+    const [selectedCategorySlug, setSelectedCategorySlug] = useState<string>('');
+    const [sizeMode, setSizeMode] = useState<'footwear' | 'apparel' | 'one-size'>('footwear');
+    const [specEntries, setSpecEntries] = useState<Array<{ key: string; value: string }>>([]);
 
     // Order tracking / resi dialog state
     const [shippingOrder, setShippingOrder] = useState<Tables<'orders'> | null>(null);
@@ -161,6 +172,11 @@ function Seller() {
             return data;
         },
     });
+    const visibleCategories = [...(categories ?? []), ...FALLBACK_CATEGORY_OPTIONS.filter((c) => !(categories ?? []).some((existing) => existing.slug === c.slug))];
+
+    function upsertSpecEntries(entries: Array<{ key: string; value: string }>) {
+        setSpecEntries(entries.filter((entry) => entry.key.trim() && entry.value.trim()));
+    }
 
     async function perform(fn: () => Promise<void>) {
         setBusy(true);
@@ -231,21 +247,42 @@ function Seller() {
 
     // Variant helpers
     function applyPreset(group: 'kids' | 'adult' | 'apparel') {
-        const targetSizes =
-            group === 'kids' ? kidsShoeSizes : group === 'adult' ? adultShoeSizes : apparelSizes;
+        const activeSizeMode = sizeModeForCategory(selectedCategorySlug, sizeMode);
+        if (activeSizeMode === 'one-size') {
+            const existingOneSize = variantsList.find((variant) => variant.size === oneSizeValue);
+            const fallbackStock = editing
+                    ? variantsList.reduce((total, variant) => total + (Number(variant.stock) || 0), 0)
+                    : 10;
+            setVariantsList([{ size: oneSizeValue, stock: existingOneSize?.stock ?? fallbackStock }]);
+            return;
+        }
+        const targetSizes = activeSizeMode === 'apparel'
+            ? apparelSizes
+            : group === 'kids'
+                ? kidsShoeSizes
+                : adultShoeSizes;
         const next = targetSizes.map((size) => {
             const found = variantsList.find((v) => v.size === size);
             return { size, stock: found ? found.stock : 10 };
         });
         setVariantsList(sortVariantSizes(next));
-        toast.info(
-            `Preset ${group === 'kids'
+        const presetLabel = activeSizeMode === 'apparel'
+            ? 'Apparel (XS–XXL)'
+            : group === 'kids'
                 ? 'Kids Shoes (EU 29–37)'
-                : group === 'adult'
-                    ? 'Adult Shoes (EU 39–45)'
-                    : 'Apparel (XS–XXL)'
-            } diterapkan`
-        );
+                : 'Adult Shoes (EU 39–45)';
+        toast.info(`Preset ${presetLabel} diterapkan`);
+    }
+
+    function setOneSizeMode() {
+        setSizeMode('one-size');
+        setVariantsList((current) => {
+            const existingOneSize = current.find((variant) => variant.size === oneSizeValue);
+            const fallbackStock = editing
+                ? current.reduce((total, variant) => total + (Number(variant.stock) || 0), 0)
+                : 10;
+            return [{ size: oneSizeValue, stock: existingOneSize?.stock ?? fallbackStock }];
+        });
     }
 
     function addCustomSize() {
@@ -282,13 +319,37 @@ function Seller() {
                     : {};
             setBannerImage(typeof specsObj['banner_image'] === 'string' ? specsObj['banner_image'] : '');
             const existingVars = product.variants.map((v) => ({ size: v.size, stock: v.stock }));
-            setVariantsList(sortVariantSizes(existingVars));
+            const entries = Object.entries(specsObj)
+                .filter(([key]) => !['banner_image', 'size_mode'].includes(key))
+                .map(([key, value]) => ({ key, value: typeof value === 'string' ? value : JSON.stringify(value) }));
+            setSpecEntries(entries.length ? entries : [{ key: 'Material', value: '' }]);
+            const resolvedCategory = product.category_id ?? '';
+            const categoryData = visibleCategories.find((c) => c.id === resolvedCategory || c.slug === resolvedCategory);
+            setSelectedCategorySlug(categoryData?.slug ?? '');
+            const resolvedSizeMode = sizeModeForCategory(
+                categoryData?.slug,
+                typeof specsObj['size_mode'] === 'string'
+                    ? specsObj['size_mode']
+                    : existingVars.some((variant) => variant.size === oneSizeValue)
+                        ? 'one-size'
+                        : null
+            );
+            setSizeMode(resolvedSizeMode);
+            if (resolvedSizeMode === 'one-size') {
+                const oneSizeVariant = existingVars.find((variant) => variant.size === oneSizeValue);
+                const stock = oneSizeVariant?.stock ?? existingVars.reduce((total, variant) => total + variant.stock, 0);
+                setVariantsList([{ size: oneSizeValue, stock }]);
+            } else {
+                setVariantsList(sortVariantSizes(existingVars));
+            }
         } else {
             setEditing(null);
             setActive(true);
             setProductImages([]);
             setBannerImage('');
-            // Default to Adult shoes preset
+            setSpecEntries([{ key: 'Material', value: '' }]);
+            setSelectedCategorySlug('');
+            setSizeMode('footwear');
             setVariantsList(adultShoeSizes.map((s) => ({ size: s, stock: 10 })));
         }
         setCustomSize('');
@@ -299,6 +360,14 @@ function Seller() {
         e.preventDefault();
         const f = new FormData(e.currentTarget);
         if (!store || !user) return;
+
+        const categoryId = String(f.get('category')) || null;
+        const categorySlug = visibleCategories.find((c) => c.id === categoryId || c.slug === categoryId)?.slug ?? '';
+        const sizeMetadata = sizeModeForCategory(categorySlug, sizeMode);
+        if (sizeMetadata !== 'one-size' && variantsList.some((variant) => variant.size === oneSizeValue)) {
+            toast.error('Terapkan preset ukuran sesuai kategori sebelum menyimpan produk.');
+            return;
+        }
 
         if (!productImages.length) {
             toast.error('Tambahkan minimal 1 foto produk (disarankan 3+ sudut foto POV)');
@@ -316,16 +385,23 @@ function Seller() {
                 editing?.specs && typeof editing.specs === 'object'
                     ? (editing.specs as Record<string, any>)
                     : {};
+            const specMap = Object.fromEntries(
+                specEntries
+                    .filter((entry) => entry.key.trim() && entry.value.trim())
+                    .map((entry) => [entry.key.trim(), entry.value.trim()])
+            );
             const specs = {
                 ...existingSpecs,
+                ...specMap,
                 banner_image: bannerImage.trim() || null,
+                size_mode: sizeMetadata,
             };
 
             const row = {
                 name,
                 description: String(f.get('description')),
                 price: Number(f.get('price')),
-                category_id: String(f.get('category')) || null,
+                category_id: categoryId,
                 gender: String(f.get('gender')),
                 collection: String(f.get('collection')) || null,
                 images: productImages,
@@ -484,6 +560,7 @@ function Seller() {
         );
     }
 
+    const editorSizeMode = sizeModeForCategory(selectedCategorySlug, sizeMode);
     const settled = (orders ?? []).filter((o) =>
         ['paid', 'processing', 'shipped', 'completed'].includes(o.status)
     );
@@ -577,11 +654,11 @@ function Seller() {
                             return (
                                 <div key={p.id} className="flex flex-wrap items-center gap-4 py-4">
                                     {p.images[0] && (
-                                        <div className="relative shrink-0">
+                                        <div className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-lg ${productImageFrameClass}`}>
                                             <img
                                                 src={p.images[0]}
                                                 alt={p.name}
-                                                className="h-20 w-20 rounded-lg bg-card object-cover border"
+                                                className={`h-full w-full rounded-lg object-contain p-1 ${productImageBlendClass(p.images[0])}`}
                                             />
                                             {p.images.length > 1 && (
                                                 <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1 py-0.5 text-[10px] font-bold text-white">
@@ -924,10 +1001,26 @@ function Seller() {
                                     id="category"
                                     name="category"
                                     defaultValue={editing?.category_id ?? ''}
+                                    onChange={(e) => {
+                                        const selected = visibleCategories.find((c) => c.id === e.target.value || c.slug === e.target.value);
+                                        const slug = selected?.slug ?? '';
+                                        setSelectedCategorySlug(slug);
+                                        const nextSizeMode = sizeModeForCategory(slug);
+                                        setSizeMode(nextSizeMode);
+                                        if (nextSizeMode === 'one-size') {
+                                            setVariantsList((current) => {
+                                                const existingOneSize = current.find((variant) => variant.size === oneSizeValue);
+                                                const fallbackStock = editing
+                                                    ? current.reduce((total, variant) => total + (Number(variant.stock) || 0), 0)
+                                                    : 10;
+                                                return [{ size: oneSizeValue, stock: existingOneSize?.stock ?? fallbackStock }];
+                                            });
+                                        }
+                                    }}
                                     className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                                 >
                                     <option value="">Pilih Kategori</option>
-                                    {categories?.map((c) => (
+                                    {visibleCategories.map((c) => (
                                         <option key={c.id} value={c.id}>
                                             {c.name}
                                         </option>
@@ -950,6 +1043,17 @@ function Seller() {
                                 </select>
                             </div>
                         </div>
+
+                        {['badminton', 'cycling'].includes(selectedCategorySlug) && (
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">Sub-tipe ukuran</Label>
+                                <div className="flex flex-wrap gap-2">
+                                    <Button type="button" variant={sizeMode === 'footwear' ? 'default' : 'outline'} size="sm" onClick={() => setSizeMode('footwear')}>Sepatu / Court</Button>
+                                    <Button type="button" variant={sizeMode === 'apparel' ? 'default' : 'outline'} size="sm" onClick={() => setSizeMode('apparel')}>Pakaian</Button>
+                                    <Button type="button" variant={sizeMode === 'one-size' ? 'default' : 'outline'} size="sm" onClick={setOneSizeMode}>Peralatan / One Size</Button>
+                                </div>
+                            </div>
+                        )}
 
                         <div>
                             <Label htmlFor="product-description">Deskripsi Produk</Label>
@@ -1004,13 +1108,13 @@ function Seller() {
                                     {productImages.map((url, idx) => (
                                         <div
                                             key={url + idx}
-                                            className="group relative overflow-hidden rounded-xl border bg-card p-1.5 shadow-sm"
+                                            className="group relative min-w-0 overflow-hidden rounded-xl border bg-card p-1.5 shadow-sm"
                                         >
-                                            <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted">
+                                            <div className={`relative aspect-square w-full overflow-hidden rounded-lg ${productImageFrameClass}`}>
                                                 <img
                                                     src={url}
                                                     alt={`POV ${idx + 1}`}
-                                                    className="h-full w-full object-cover"
+                                                    className={`h-full w-full rounded-lg object-contain p-1 ${productImageBlendClass(url)}`}
                                                 />
                                                 <span className="absolute left-1.5 top-1.5 rounded bg-black/75 px-1.5 py-0.5 text-[10px] font-bold text-white">
                                                     POV {idx + 1}
@@ -1121,7 +1225,7 @@ function Seller() {
                         </div>
 
                         {/* 3. VARIAN UKURAN & STOK (KIDS EU 29–37, ADULT EU 39–45, APPAREL XS–XXL) */}
-                        <div className="space-y-3 border-t pt-4">
+                        <div className="min-w-0 space-y-3 border-t pt-4">
                             <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div>
                                     <Label className="text-sm font-semibold flex items-center gap-1.5">
@@ -1137,7 +1241,11 @@ function Seller() {
                             </div>
 
                             {/* Preset Buttons */}
-                            <div className="flex flex-wrap items-center gap-2">
+                            {editorSizeMode === 'one-size' ? (
+                                <p className="rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                                    Varian kategori ini menggunakan satu ukuran: One Size.
+                                </p>
+                            ) : <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-xs font-semibold text-muted-foreground">Preset:</span>
                                 <Button
                                     type="button"
@@ -1166,10 +1274,10 @@ function Seller() {
                                 >
                                     👕 Apparel (XS–XXL)
                                 </Button>
-                            </div>
+                            </div>}
 
                             {/* Custom Size Adder */}
-                            <div className="flex items-center gap-2">
+                            {editorSizeMode !== 'one-size' && <div className="flex min-w-0 items-center gap-2">
                                 <Input
                                     placeholder="Ukuran kustom (misal: 38, 46, All Size)"
                                     value={customSize}
@@ -1191,7 +1299,7 @@ function Seller() {
                                 >
                                     <Plus className="h-3.5 w-3.5" /> + Add Custom Size
                                 </Button>
-                            </div>
+                            </div>}
 
                             {/* Variants Grid List */}
                             <div className="max-h-56 overflow-y-auto rounded-lg border bg-muted/20 p-2.5">
@@ -1234,6 +1342,37 @@ function Seller() {
                                     </div>
                                 )}
                             </div>
+                        </div>
+
+                        {/* 4. SPECIFICATIONS KEY-VALUE (DINAMIS) */}
+                        <div className="space-y-3 border-t pt-4">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-sm font-semibold">Spesifikasi Produk</Label>
+                                <Button type="button" variant="outline" size="sm" onClick={() => setSpecEntries((prev) => [...prev, { key: '', value: '' }])}>+ Tambah</Button>
+                            </div>
+                            {specEntries.map((spec, index) => (
+                                <div key={`${spec.key}-${index}`} className="grid grid-cols-[1fr_1.5fr_auto] gap-2">
+                                    <Input
+                                        placeholder="Label: Material"
+                                        value={spec.key}
+                                        onChange={(e) => setSpecEntries((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, key: e.target.value } : item))}
+                                    />
+                                    <Input
+                                        placeholder="Nilai: 100% Recycled Polyester"
+                                        value={spec.value}
+                                        onChange={(e) => setSpecEntries((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, value: e.target.value } : item))}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-10 w-10 p-0 text-destructive"
+                                        onClick={() => setSpecEntries((prev) => prev.filter((_, itemIndex) => itemIndex !== index))}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ))}
                         </div>
 
                         {/* Visibility Toggle */}

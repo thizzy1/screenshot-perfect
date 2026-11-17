@@ -11,17 +11,25 @@ type ThemeCtx = { theme: Theme; toggleTheme: () => void; setTheme: (t: Theme) =>
 const Ctx = createContext<ThemeCtx | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    try {
-      const stored = localStorage.getItem('seaport-theme') as Theme | null;
-      if (stored === 'dark' || stored === 'light') return stored;
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    } catch {
-      return 'light';
-    }
-  });
+  const [theme, setThemeState] = useState<Theme>('light');
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    let initialTheme: Theme = 'light';
+    try {
+      const stored = localStorage.getItem('seaport-theme') as Theme | null;
+      initialTheme = stored === 'dark' || stored === 'light'
+        ? stored
+        : window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } catch {
+      initialTheme = 'light';
+    }
+    setThemeState(initialTheme);
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
     const root = document.documentElement;
     if (theme === 'dark') {
       root.classList.add('dark');
@@ -29,7 +37,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       root.classList.remove('dark');
     }
     try { localStorage.setItem('seaport-theme', theme); } catch { /* SSR */ }
-  }, [theme]);
+  }, [theme, ready]);
 
   const setTheme = (t: Theme) => setThemeState(t);
   const toggleTheme = () => setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
