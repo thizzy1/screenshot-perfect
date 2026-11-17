@@ -5,6 +5,8 @@ import {
   apparelSizeGuide,
   adultShoeSizeGuide,
   kidsShoeSizeGuide,
+  compareSizes,
+  sortVariantSizes,
 } from '@/lib/sizing';
 
 describe('Product sizing', () => {
@@ -28,4 +30,15 @@ describe('Product sizing', () => {
     expect(adultShoeSizeGuide.find((g) => g.eu === '42')?.insole).toBe('26.5 cm');
     expect(kidsShoeSizeGuide.find((g) => g.eu === '29')?.insole).toBe('18.0 cm');
   });
+
+  it('sorts numeric shoe sizes ascending', () => {
+    const raw = [{ size: '42' }, { size: '29' }, { size: '37' }, { size: '40' }];
+    expect(sortVariantSizes(raw).map((v) => v.size)).toEqual(['29', '37', '40', '42']);
+  });
+
+  it('sorts apparel sizes from XS to XXL', () => {
+    const raw = [{ size: 'XL' }, { size: 'XS' }, { size: 'M' }, { size: 'S' }];
+    expect(sortVariantSizes(raw).map((v) => v.size)).toEqual(['XS', 'S', 'M', 'XL']);
+  });
 });
+

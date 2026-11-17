@@ -49,7 +49,7 @@ export const adultShoeSizeGuide: readonly ShoeSizeGuide[] = [
 ];
 
 export const kidsShoeSizeGuide: readonly ShoeSizeGuide[] = [
-  { eu: '29', us: '11.5C', uk: '11C', insole: '18.0 cm', outsole: '±19.8 cm' },
+  { eu: '29', us: '11.5C', uk: '11C', insole: '18.0 cm', outsole: '±24.3 cm' },
   { eu: '30', us: '12C', uk: '11.5C', insole: '18.5 cm', outsole: '±20.3 cm' },
   { eu: '31', us: '13C', uk: '12.5C', insole: '19.5 cm', outsole: '±21.3 cm' },
   { eu: '32', us: '1Y', uk: '13.5C', insole: '20.0 cm', outsole: '±21.8 cm' },
@@ -59,3 +59,29 @@ export const kidsShoeSizeGuide: readonly ShoeSizeGuide[] = [
   { eu: '36', us: '4Y', uk: '3.5', insole: '22.5 cm', outsole: '±24.3 cm' },
   { eu: '37', us: '4.5Y', uk: '4', insole: '23.0 cm', outsole: '±24.8 cm' },
 ];
+
+export function compareSizes(a: string, b: string): number {
+  const numA = Number(a);
+  const numB = Number(b);
+  if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+  const apparelOrder: Record<string, number> = {
+    XXS: 1,
+    XS: 2,
+    S: 3,
+    M: 4,
+    L: 5,
+    XL: 6,
+    XXL: 7,
+    '2XL': 7,
+    '3XL': 8,
+  };
+  const ordA = apparelOrder[a.toUpperCase()];
+  const ordB = apparelOrder[b.toUpperCase()];
+  if (ordA && ordB) return ordA - ordB;
+  return a.localeCompare(b);
+}
+
+export function sortVariantSizes<T extends { size: string }>(variants: T[]): T[] {
+  return [...variants].sort((a, b) => compareSizes(a.size, b.size));
+}
+

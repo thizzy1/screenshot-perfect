@@ -15,7 +15,7 @@ export function ProductCard({ p }: { p: CatalogProduct }) {
     e.preventDefault();
     const v = [...p.variants].sort((a, b) => Number(a.size) - Number(b.size)).find((x) => x.stock > 0);
     if (!v) { toast.error("Sold out"); return; }
-    cart.add({ variantId: v.id, productId: p.id, slug: p.slug, name: p.name, size: v.size, price: p.price, image: p.images[0] ?? null, storeName: p.store?.name ?? "", maxStock: v.stock });
+    cart.add({ variantId: v.id, productId: p.id, slug: p.slug, name: p.name, size: v.size, price: p.price, image: p.images[0] ?? null, storeName: "SEAPORT OFFICIAL", maxStock: v.stock });
     toast.success(`${p.name} (${sizeLabel(v.size)}) added to cart`);
     cart.setOpen(true);
   };
@@ -31,7 +31,7 @@ export function ProductCard({ p }: { p: CatalogProduct }) {
       </div>
       <div className="flex flex-1 items-end justify-between gap-3 p-4">
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">{p.store?.name} · {p.category?.name}</p>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">SEAPORT OFFICIAL · {p.category?.name}</p>
           <h3 className="truncate text-xl font-bold uppercase">{p.name}</h3>
           <p className="font-semibold">{formatIDR(p.price)}</p>
         </div>

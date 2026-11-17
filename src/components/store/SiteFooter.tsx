@@ -72,15 +72,15 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-[1600px] gap-10 px-4 py-14 sm:grid-cols-2 md:grid-cols-4 md:px-7">
         {/* BRAND IDENTITY */}
         <div className="space-y-4">
-          <Link to="/" className="inline-block">
-            <img src={logo.url} alt="Seaport" className="h-10 w-auto brightness-0 invert" />
+          <Link to="/" className="inline-block" aria-label="Seaport Home">
+            <img src={logo.url} alt="Seaport" className="h-8 w-auto object-contain brightness-0 invert" />
           </Link>
           <p className="text-sm opacity-80 leading-relaxed">
-            Marketplace sportswear premium terpercaya di Indonesia. Dapatkan sepatu basket ANTA KAI, PG7, running shoes, dan perlengkapan olahraga original dengan jaminan keaslian 100%.
+            Official Store sportswear & footwear premium terpercaya di Indonesia. Dapatkan sepatu basket ANTA KAI, PG7, running shoes, dan perlengkapan olahraga 100% original.
           </p>
           <div className="pt-2">
             <Badge variant="outline" className="border-white/20 text-white/90 text-xs">
-              Official Marketplace
+              Official Retail Store
             </Badge>
           </div>
         </div>
@@ -145,8 +145,8 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
-              <Link to="/seller" className="hover:text-white hover:underline transition">
-                Buka Toko / Menjadi Seller
+              <Link to="/account" className="hover:text-white hover:underline transition">
+                Seaport Member & Keuntungan
               </Link>
             </li>
             <li>

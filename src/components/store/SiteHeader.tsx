@@ -48,9 +48,16 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-30 border-b glass-light">
+      {/* OFFICIAL STORE ANNOUNCEMENT BAR */}
+      <div className="bg-hero text-hero-foreground py-1.5 px-4 text-center text-xs font-semibold tracking-wide border-b border-white/10">
+        Gratis Ongkir Seluruh Indonesia untuk Pembelian di Atas Rp 1.000.000 · 100% Produk Original
+      </div>
+
       <div className="mx-auto flex h-20 max-w-[1600px] items-center gap-6 px-4 md:px-7">
         <button className="lg:hidden" aria-label="Open menu" onClick={() => setMenu(true)}><Menu /></button>
-        <Link to="/" className="shrink-0"><img src={logo.url} alt="Seaport" className="h-14 w-auto" /></Link>
+        <Link to="/" className="shrink-0" aria-label="Seaport Home">
+          <img src={logo.url} alt="Seaport" className="h-8 w-auto object-contain" />
+        </Link>
         <nav className="hidden items-center gap-7 text-[15px] lg:flex">{nav}</nav>
         <div className="ml-auto flex items-center gap-2">
           <form
@@ -68,9 +75,13 @@ export function SiteHeader() {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel className="truncate">{user.email ?? user.phone}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild><Link to="/account"><User /> My account</Link></DropdownMenuItem>
-                <DropdownMenuItem asChild><Link to="/seller"><Store /> {hasRole("seller") ? "Seller dashboard" : "Become a seller"}</Link></DropdownMenuItem>
-                {hasRole("admin") && <DropdownMenuItem asChild><Link to="/admin"><ShieldCheck /> Admin</Link></DropdownMenuItem>}
+                <DropdownMenuItem asChild><Link to="/account"><User /> My account / Member</Link></DropdownMenuItem>
+                {hasRole("admin") && (
+                  <>
+                    <DropdownMenuItem asChild><Link to="/seller"><Store /> Store Management</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link to="/admin"><ShieldCheck /> Platform Admin</Link></DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut}><LogOut /> Sign out</DropdownMenuItem>
               </DropdownMenuContent>
@@ -91,7 +102,7 @@ export function SiteHeader() {
             <Search className="h-4 w-4" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" className="w-full bg-transparent outline-none" />
           </form>
           <nav className="flex flex-col gap-3 text-lg">{nav}</nav>
-          {user && <Link to="/seller" onClick={() => setMenu(false)} className="flex items-center gap-2 font-semibold"><LayoutDashboard className="h-4 w-4" /> Dashboard</Link>}
+          {user && hasRole("admin") && <Link to="/seller" onClick={() => setMenu(false)} className="flex items-center gap-2 font-semibold"><LayoutDashboard className="h-4 w-4" /> Store Management</Link>}
         </SheetContent>
       </Sheet>
     </header>

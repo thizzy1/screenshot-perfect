@@ -54,7 +54,7 @@ function ProductPage() {
   const selected = variants.find((v) => v.size === size);
   const add = (buy: boolean) => {
     if (!selected || selected.stock < 1) { toast.error("Please choose an available size"); return; }
-    cart.add({ variantId: selected.id, productId: p.id, slug: p.slug, name: p.name, size: selected.size, price: p.price, image: p.images[0] ?? null, storeName: p.store?.name ?? "", maxStock: selected.stock });
+    cart.add({ variantId: selected.id, productId: p.id, slug: p.slug, name: p.name, size: selected.size, price: p.price, image: p.images[0] ?? null, storeName: "SEAPORT OFFICIAL", maxStock: selected.stock });
     if (buy) navigate({ to: "/checkout" });
     else { toast.success("Added to cart"); cart.setOpen(true); }
   };
@@ -121,7 +121,7 @@ function ProductPage() {
         </div>
         <div className="space-y-6">
           <div>
-            <p className="text-sm uppercase tracking-wider text-muted-foreground">{p.store?.name} · {p.category?.name}</p>
+            <p className="text-sm uppercase tracking-wider text-muted-foreground font-semibold">SEAPORT OFFICIAL · {p.category?.name}</p>
             <h1 className="text-5xl font-extrabold uppercase md:text-6xl">{p.name}</h1>
             <p className="mt-2 text-2xl font-semibold">{formatIDR(p.price)}</p>
           </div>
@@ -150,7 +150,7 @@ function ProductPage() {
           </div>
           <div className="grid gap-3 text-sm sm:grid-cols-2">
             <div className="flex items-center gap-2 rounded-2xl bg-card p-3"><Truck className="h-4 w-4" /> Ships across Indonesia</div>
-            <div className="flex items-center gap-2 rounded-2xl bg-card p-3"><ShieldCheck className="h-4 w-4" /> Verified seller</div>
+            <div className="flex items-center gap-2 rounded-2xl bg-card p-3"><ShieldCheck className="h-4 w-4" /> 100% Official & Authentic</div>
           </div>
           {specs.length > 0 && (
             <div className="rounded-3xl bg-card p-5">
