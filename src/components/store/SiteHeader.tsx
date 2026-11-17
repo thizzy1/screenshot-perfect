@@ -98,28 +98,4 @@ export function SiteHeader() {
   );
 }
 
-export function SiteFooter() {
-  return (
-    <footer className="mt-24 bg-hero-gradient text-hero-foreground">
-      <div className="mx-auto grid max-w-[1600px] gap-8 px-4 py-14 md:grid-cols-4 md:px-7">
-        <div>
-          <p className="font-display text-4xl font-bold uppercase">Seaport</p>
-          <p className="mt-2 text-sm opacity-75">Premium sportswear marketplace.</p>
-        </div>
-        <div className="space-y-2 text-sm">
-          <p className="font-semibold uppercase tracking-wider opacity-70">Shop</p>
-          <Link to="/shop" search={{ collection: "KAI" }} className="block hover:underline">ANTA KAI</Link>
-          <Link to="/shop" search={{ category: "running" }} className="block hover:underline">Running</Link>
-          <Link to="/shop" search={{ gender: "women" }} className="block hover:underline">Women</Link>
-        </div>
-        <div className="space-y-2 text-sm">
-          <p className="font-semibold uppercase tracking-wider opacity-70">Account</p>
-          <Link to="/account" className="block hover:underline">My orders</Link>
-          <Link to="/seller" className="block hover:underline">Sell on Seaport</Link>
-          <Link to="/cart" className="block hover:underline">Cart</Link>
-        </div>
-        <div className="text-sm opacity-75">Payments: QRIS · Virtual Account · E-Wallet · COD</div>
-      </div>
-    </footer>
-  );
-}
+export { SiteFooter } from "@/components/store/SiteFooter";

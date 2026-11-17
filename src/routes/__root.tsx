@@ -12,7 +12,8 @@ import { useEffect, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { CartProvider } from "@/lib/cart";
 import { AuthProvider } from "@/hooks/useAuth";
-import { SiteHeader, SiteFooter } from "@/components/store/SiteHeader";
+import { SiteHeader } from "@/components/store/SiteHeader";
+import { SiteFooter } from "@/components/store/SiteFooter";
 import { CartSheet } from "@/components/store/CartSheet";
 
 import appCss from "../styles.css?url";
