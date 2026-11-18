@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, ShieldCheck, Truck, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ShieldCheck, Truck } from "lucide-react";
 import { productQuery, catalogQuery } from "@/lib/queries";
 import { formatIDR } from "@/lib/format";
 import { useCart } from "@/lib/cart";
@@ -132,14 +132,14 @@ function ProductPage() {
   return (
     <div className="mx-auto max-w-[1400px] overflow-x-hidden px-4 py-10 md:px-7">
       <div className="grid gap-10 md:grid-cols-2">
-        <div className="space-y-3">
-          <div className="relative overflow-hidden rounded-3xl bg-card shadow-card">
+        <div className="min-w-0 w-full space-y-3">
+          <div className="relative aspect-square w-full overflow-hidden rounded-3xl bg-card shadow-card">
             {p.images[img] ? (
               <img
                 src={p.images[img]}
                 alt={p.name}
                 onClick={() => setLightboxOpen(true)}
-                className="aspect-square w-full object-contain"
+                className="h-full w-full object-contain cursor-zoom-in"
               />
             ) : (
               <div className="flex aspect-square w-full items-center justify-center bg-muted text-muted-foreground">
@@ -165,7 +165,7 @@ function ProductPage() {
           </div>
           {p.images.length > 1 && (
             <div
-              className="flex gap-2.5 overflow-x-auto pb-1.5 scrollbar-none"
+              className="flex min-w-0 w-full gap-2.5 overflow-x-auto pb-1.5 scrollbar-none"
               role="tablist"
               aria-label="Sudut Foto Produk (POV Gallery)"
             >
@@ -301,18 +301,9 @@ function ProductPage() {
 
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
         <DialogContent
-          showCloseButton={false}
-          className={`max-w-5xl overflow-hidden border-0 p-0 shadow-none [&>button.absolute]:hidden ${productImageFrameClass}`}
+          className={`max-w-5xl overflow-hidden border-0 p-0 shadow-none ${productImageFrameClass}`}
         >
           <div className={`relative flex min-w-0 items-center justify-center overflow-hidden ${productImageFrameClass}`}>
-            <button
-              type="button"
-              aria-label="Close fullscreen preview"
-              onClick={() => setLightboxOpen(false)}
-              className="absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white transition-transform hover:scale-105 hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-white/80 cursor-pointer shadow-md"
-            >
-              <X className="h-5 w-5" />
-            </button>
             {p.images.length > 1 && (
               <button type="button" aria-label="Previous image" onClick={prevImage} className="absolute left-4 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white">
                 <ChevronLeft className="h-5 w-5" />

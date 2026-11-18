@@ -1413,7 +1413,7 @@ function Seller() {
                                 <Button type="button" variant="outline" size="sm" onClick={() => setSpecEntries((prev) => [...prev, { key: '', value: '' }])}>+ Tambah</Button>
                             </div>
                             {specEntries.map((spec, index) => (
-                                <div key={`${spec.key}-${index}`} className="grid grid-cols-[1fr_1.5fr_auto] gap-2">
+                                <div key={index} className="grid grid-cols-[1fr_1.5fr_auto] gap-2">
                                     <Input
                                         placeholder="Label: Material"
                                         value={spec.key}
