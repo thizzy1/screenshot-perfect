@@ -300,9 +300,17 @@ function ProductPage() {
       )}
 
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-        <DialogContent className={`max-w-5xl overflow-hidden border-0 p-0 shadow-none ${productImageFrameClass}`}>
+        <DialogContent
+          showCloseButton={false}
+          className={`max-w-5xl overflow-hidden border-0 p-0 shadow-none [&>button.absolute]:hidden ${productImageFrameClass}`}
+        >
           <div className={`relative flex min-w-0 items-center justify-center overflow-hidden ${productImageFrameClass}`}>
-            <button type="button" onClick={() => setLightboxOpen(false)} className="absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-white">
+            <button
+              type="button"
+              aria-label="Close fullscreen preview"
+              onClick={() => setLightboxOpen(false)}
+              className="absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white transition-transform hover:scale-105 hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-white/80 cursor-pointer shadow-md"
+            >
               <X className="h-5 w-5" />
             </button>
             {p.images.length > 1 && (

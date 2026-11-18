@@ -261,7 +261,7 @@ function Seller() {
                 : adultShoeSizes;
         const next = targetSizes.map((size) => {
             const found = variantsList.find((v) => v.size === size);
-            return { size, stock: found ? found.stock : 10 };
+            return { size, stock: found ? found.stock : 0 };
         });
         setVariantsList(sortVariantSizes(next));
         const presetLabel = activeSizeMode === 'apparel'
@@ -278,7 +278,7 @@ function Seller() {
             const existingOneSize = current.find((variant) => variant.size === oneSizeValue);
             const fallbackStock = editing
                 ? current.reduce((total, variant) => total + (Number(variant.stock) || 0), 0)
-                : 10;
+                : 0;
             return [{ size: oneSizeValue, stock: existingOneSize?.stock ?? fallbackStock }];
         });
     }
@@ -290,7 +290,7 @@ function Seller() {
             toast.error(`Ukuran "${trimmed}" sudah ada di daftar varian`);
             return;
         }
-        const next = sortVariantSizes([...variantsList, { size: trimmed, stock: 10 }]);
+        const next = sortVariantSizes([...variantsList, { size: trimmed, stock: 0 }]);
         setVariantsList(next);
         setCustomSize('');
         toast.success(`Ukuran ${trimmed} berhasil ditambahkan`);
@@ -348,7 +348,7 @@ function Seller() {
             setSpecEntries([{ key: 'Material', value: '' }]);
             setSelectedCategorySlug('');
             setSizeMode('footwear');
-            setVariantsList(adultShoeSizes.map((s) => ({ size: s, stock: 10 })));
+            setVariantsList(adultShoeSizes.map((s) => ({ size: s, stock: 0 })));
         }
         setCustomSize('');
         setEditor(true);
@@ -439,6 +439,28 @@ function Seller() {
                 size: v.size.trim(),
                 stock: Number(v.stock) || 0,
             }));
+
+            // Delete variants that were removed by admin (orphan cleanup)
+            if (editing && id) {
+                const sizesToKeep = variantsToSave.map((v) => v.size);
+                if (sizesToKeep.length > 0) {
+                    // Build a comma-separated list for the .not('size','in','(...)') filter
+                    const keepList = `(${sizesToKeep.map((s) => `"${s}"`).join(',')})`;
+                    const { error: delError } = await supabase
+                        .from('product_variants')
+                        .delete()
+                        .eq('product_id', id)
+                        .not('size', 'in', keepList);
+                    if (delError) throw delError;
+                } else {
+                    // All variants removed — delete everything
+                    const { error: delError } = await supabase
+                        .from('product_variants')
+                        .delete()
+                        .eq('product_id', id);
+                    if (delError) throw delError;
+                }
+            }
 
             const { error: varError } = await supabase
                 .from('product_variants')
@@ -1015,13 +1037,13 @@ function Seller() {
                                                 const existingOneSize = current.find((variant) => variant.size === oneSizeValue);
                                                 const fallbackStock = editing
                                                     ? current.reduce((total, variant) => total + (Number(variant.stock) || 0), 0)
-                                                    : 10;
+                                                    : 0;
                                                 return [{ size: oneSizeValue, stock: existingOneSize?.stock ?? fallbackStock }];
                                             });
                                         } else if (nextSizeMode === 'footwear' && !editing) {
-                                            setVariantsList(adultShoeSizes.map((s) => ({ size: s, stock: 10 })));
+                                            setVariantsList(adultShoeSizes.map((s) => ({ size: s, stock: 0 })));
                                         } else if (nextSizeMode === 'apparel' && !editing) {
-                                            setVariantsList(apparelSizes.map((s) => ({ size: s, stock: 10 })));
+                                            setVariantsList(apparelSizes.map((s) => ({ size: s, stock: 0 })));
                                         }
                                     }}
                                     className="h-10 w-full rounded-md border bg-background px-3 text-sm"
@@ -1279,7 +1301,7 @@ function Seller() {
                                                 const allSizes = [...kidsShoeSizes, ...adultShoeSizes];
                                                 const next = allSizes.map((size) => {
                                                     const found = variantsList.find((v) => v.size === size);
-                                                    return { size, stock: found ? found.stock : 10 };
+                                                    return { size, stock: found ? found.stock : 0 };
                                                 });
                                                 setVariantsList(sortVariantSizes(next));
                                                 toast.info('Preset Adult + Kids (EU 29–45) diterapkan');
@@ -1307,7 +1329,7 @@ function Seller() {
                                         size="sm"
                                         className="h-7 text-xs gap-1"
                                         onClick={() => {
-                                            setVariantsList([{ size: oneSizeValue, stock: 10 }]);
+                                            setVariantsList([{ size: oneSizeValue, stock: 0 }]);
                                             toast.info('Preset One Size diterapkan');
                                         }}
                                     >
