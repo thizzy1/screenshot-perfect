@@ -10,16 +10,22 @@ export function isAccessoriesCategory(categorySlug?: string | null): boolean {
   return normalized === 'accessory' || normalized === 'accessories';
 }
 
+export function isOthersCategory(categorySlug?: string | null): boolean {
+  const normalized = categorySlug?.trim().toLowerCase();
+  return normalized === 'other' || normalized === 'others';
+}
+
 export function sizesFor(group: SizeGroup): readonly string[] {
   return group === 'kids' ? kidsShoeSizes : group === 'apparel' ? apparelSizes : adultShoeSizes;
 }
 
 export function sizeModeForCategory(categorySlug?: string | null, explicitMode?: string | null): CategorySizeMode {
   if (isAccessoriesCategory(categorySlug)) return 'one-size';
+  if (isOthersCategory(categorySlug)) return explicitMode === 'footwear' || explicitMode === 'apparel' ? explicitMode : 'one-size';
   const normalized = (explicitMode ?? categorySlug ?? '').toLowerCase();
   if (normalized === 'apparel') return 'apparel';
-  if (normalized === 'one-size' || normalized === 'equipment' || normalized === 'accessories') return 'one-size';
-  if (normalized === 'badminton' || normalized === 'cycling') return 'footwear';
+  if (normalized === 'one-size' || normalized === 'equipment' || normalized === 'accessories' || normalized === 'others') return 'one-size';
+  if (normalized === 'badminton' || normalized === 'cycling' || normalized === 'football-cleats' || normalized === 'football') return 'footwear';
   return 'footwear';
 }
 

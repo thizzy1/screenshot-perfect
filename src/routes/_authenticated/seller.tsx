@@ -45,6 +45,8 @@ import {
     sizeModeForCategory,
     sortVariantSizes,
 } from '@/lib/sizing';
+import { useI18n } from '@/lib/i18n';
+import { mergeCategories, getCategoryLabel, ensureCategoryInDb } from '@/lib/categories';
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip } from 'recharts';
 
 export const Route = createFileRoute('/_authenticated/seller')({
@@ -68,12 +70,8 @@ interface VariantItem {
     stock: number;
 }
 
-const FALLBACK_CATEGORY_OPTIONS = [
-    { id: 'badminton', name: 'Badminton', slug: 'badminton' },
-    { id: 'cycling', name: 'Cycling', slug: 'cycling' },
-] as const;
-
 function Seller() {
+    const { lang, t } = useI18n();
     const { user, hasRole, loading: authLoading, refreshRoles } = useAuth();
     const navigate = useNavigate();
     const qc = useQueryClient();
@@ -172,7 +170,7 @@ function Seller() {
             return data;
         },
     });
-    const visibleCategories = [...(categories ?? []), ...FALLBACK_CATEGORY_OPTIONS.filter((c) => !(categories ?? []).some((existing) => existing.slug === c.slug))];
+    const visibleCategories = mergeCategories(categories);
 
     function upsertSpecEntries(entries: Array<{ key: string; value: string }>) {
         setSpecEntries(entries.filter((entry) => entry.key.trim() && entry.value.trim()));
@@ -361,8 +359,9 @@ function Seller() {
         const f = new FormData(e.currentTarget);
         if (!store || !user) return;
 
-        const categoryId = String(f.get('category')) || null;
-        const categorySlug = visibleCategories.find((c) => c.id === categoryId || c.slug === categoryId)?.slug ?? '';
+        const rawCategoryId = String(f.get('category')) || null;
+        const selectedCat = visibleCategories.find((c) => c.id === rawCategoryId || c.slug === rawCategoryId);
+        const categorySlug = selectedCat?.slug ?? '';
         const sizeMetadata = sizeModeForCategory(categorySlug, sizeMode);
         if (sizeMetadata !== 'one-size' && variantsList.some((variant) => variant.size === oneSizeValue)) {
             toast.error('Terapkan preset ukuran sesuai kategori sebelum menyimpan produk.');
@@ -381,6 +380,10 @@ function Seller() {
 
         await perform(async () => {
             const name = String(f.get('name')).trim();
+            let realCategoryId: string | null = null;
+            if (rawCategoryId) {
+                realCategoryId = await ensureCategoryInDb(categorySlug || rawCategoryId, selectedCat?.name);
+            }
             const existingSpecs =
                 editing?.specs && typeof editing.specs === 'object'
                     ? (editing.specs as Record<string, any>)
@@ -401,7 +404,7 @@ function Seller() {
                 name,
                 description: String(f.get('description')),
                 price: Number(f.get('price')),
-                category_id: categoryId,
+                category_id: realCategoryId,
                 gender: String(f.get('gender')),
                 collection: String(f.get('collection')) || null,
                 images: productImages,
@@ -996,7 +999,7 @@ function Seller() {
 
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <Label htmlFor="category">Kategori</Label>
+                                <Label htmlFor="category">{lang === 'id' ? 'Kategori' : 'Category'}</Label>
                                 <select
                                     id="category"
                                     name="category"
@@ -1015,14 +1018,18 @@ function Seller() {
                                                     : 10;
                                                 return [{ size: oneSizeValue, stock: existingOneSize?.stock ?? fallbackStock }];
                                             });
+                                        } else if (nextSizeMode === 'footwear' && !editing) {
+                                            setVariantsList(adultShoeSizes.map((s) => ({ size: s, stock: 10 })));
+                                        } else if (nextSizeMode === 'apparel' && !editing) {
+                                            setVariantsList(apparelSizes.map((s) => ({ size: s, stock: 10 })));
                                         }
                                     }}
                                     className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                                 >
-                                    <option value="">Pilih Kategori</option>
+                                    <option value="">{lang === 'id' ? 'Pilih Kategori' : 'Select Category'}</option>
                                     {visibleCategories.map((c) => (
                                         <option key={c.id} value={c.id}>
-                                            {c.name}
+                                            {getCategoryLabel(c.slug, lang)}
                                         </option>
                                     ))}
                                 </select>
@@ -1241,43 +1248,76 @@ function Seller() {
                             </div>
 
                             {/* Preset Buttons */}
-                            {editorSizeMode === 'one-size' ? (
-                                <p className="rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                                    Varian kategori ini menggunakan satu ukuran: One Size.
-                                </p>
-                            ) : <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-xs font-semibold text-muted-foreground">Preset:</span>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 text-xs gap-1"
-                                    onClick={() => applyPreset('kids')}
-                                >
-                                    👟 Kids Shoes (EU 29–37)
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 text-xs gap-1"
-                                    onClick={() => applyPreset('adult')}
-                                >
-                                    👟 Adult Shoes (EU 39–45)
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 text-xs gap-1"
-                                    onClick={() => applyPreset('apparel')}
-                                >
-                                    👕 Apparel (XS–XXL)
-                                </Button>
-                            </div>}
+                                {editorSizeMode === 'footwear' && (
+                                    <>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 text-xs gap-1"
+                                            onClick={() => applyPreset('adult')}
+                                        >
+                                            👟 Adult Shoes (EU 39–45)
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 text-xs gap-1"
+                                            onClick={() => applyPreset('kids')}
+                                        >
+                                            👟 Kids Shoes (EU 29–37)
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 text-xs gap-1"
+                                            onClick={() => {
+                                                const allSizes = [...kidsShoeSizes, ...adultShoeSizes];
+                                                const next = allSizes.map((size) => {
+                                                    const found = variantsList.find((v) => v.size === size);
+                                                    return { size, stock: found ? found.stock : 10 };
+                                                });
+                                                setVariantsList(sortVariantSizes(next));
+                                                toast.info('Preset Adult + Kids (EU 29–45) diterapkan');
+                                            }}
+                                        >
+                                            👟 Adult + Kids (EU 29–45)
+                                        </Button>
+                                    </>
+                                )}
+                                {editorSizeMode === 'apparel' && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-xs gap-1"
+                                        onClick={() => applyPreset('apparel')}
+                                    >
+                                        👕 Apparel (XS–XXL)
+                                    </Button>
+                                )}
+                                {editorSizeMode === 'one-size' && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-xs gap-1"
+                                        onClick={() => {
+                                            setVariantsList([{ size: oneSizeValue, stock: 10 }]);
+                                            toast.info('Preset One Size diterapkan');
+                                        }}
+                                    >
+                                        📦 One Size
+                                    </Button>
+                                )}
+                            </div>
 
                             {/* Custom Size Adder */}
-                            {editorSizeMode !== 'one-size' && <div className="flex min-w-0 items-center gap-2">
+                            <div className="flex min-w-0 items-center gap-2">
                                 <Input
                                     placeholder="Ukuran kustom (misal: 38, 46, All Size)"
                                     value={customSize}
@@ -1299,7 +1339,7 @@ function Seller() {
                                 >
                                     <Plus className="h-3.5 w-3.5" /> + Add Custom Size
                                 </Button>
-                            </div>}
+                            </div>
 
                             {/* Variants Grid List */}
                             <div className="max-h-56 overflow-y-auto rounded-lg border bg-muted/20 p-2.5">

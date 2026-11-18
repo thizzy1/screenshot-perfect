@@ -1,24 +1,17 @@
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LayoutDashboard, LogOut, Menu, MoonStar, Search, ShieldCheck, ShoppingBag, Store, SunMedium, User, Globe2 } from "lucide-react";
 import { useState } from "react";
-import logo from "@/assets/Seaport.png.asset.json";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "@/lib/theme";
 import { useI18n } from "@/lib/i18n";
+import { categoriesQuery } from "@/lib/queries";
+import { mergeCategories, getCategoryLabel } from "@/lib/categories";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-
-const NAV = [
-  { label: "Newest Drop", search: { sort: "new" } },
-  { label: "PG7", search: { collection: "PG7" } },
-  { label: "KAI", search: { collection: "KAI" } },
-  { label: "Men", search: { gender: "men" } },
-  { label: "Women", search: { gender: "women" } },
-] as const;
 
 export function SiteHeader() {
   const cart = useCart();
@@ -31,6 +24,9 @@ export function SiteHeader() {
   const [q, setQ] = useState("");
   const [menu, setMenu] = useState(false);
 
+  const { data: dbCategories } = useQuery(categoriesQuery);
+  const categories = mergeCategories(dbCategories);
+
   const signOut = async () => {
     await qc.cancelQueries();
     qc.clear();
@@ -39,9 +35,17 @@ export function SiteHeader() {
     router.invalidate();
   };
 
+  const navItems = [
+    { label: t("newestDrop"), search: { sort: "new" } },
+    { label: "PG7", search: { collection: "PG7" } },
+    { label: "KAI", search: { collection: "KAI" } },
+    { label: t("men"), search: { gender: "men" } },
+    { label: t("women"), search: { gender: "women" } },
+  ];
+
   const nav = (
     <>
-      {NAV.map((n) => (
+      {navItems.map((n) => (
         <Link key={n.label} to="/shop" search={n.search} onClick={() => setMenu(false)} className="relative py-1 font-semibold opacity-90 transition hover:opacity-100 after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-full after:origin-left after:scale-x-0 after:bg-foreground after:transition-transform hover:after:scale-x-100">
           {n.label}
         </Link>
@@ -60,7 +64,7 @@ export function SiteHeader() {
       <div className="mx-auto flex h-20 max-w-[1600px] items-center gap-3 px-4 md:px-7">
         <button className="lg:hidden" aria-label={t("openMenu")} onClick={() => setMenu(true)}><Menu /></button>
         <Link to="/" className="shrink-0" aria-label="Seaport Home">
-          <img src={logo.url} alt="Seaport" className="h-8 w-auto object-contain" />
+          <img src="/Seaport.png" alt="Seaport" className="h-8 w-auto object-contain" />
         </Link>
         <nav className="hidden items-center gap-7 text-[15px] lg:flex">{nav}</nav>
         <div className="ml-auto flex items-center gap-2">
@@ -138,6 +142,24 @@ export function SiteHeader() {
             <Search className="h-4 w-4" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("search")} className="w-full bg-transparent outline-none" />
           </form>
           <nav className="flex flex-col gap-3 text-lg">{nav}</nav>
+          <div className="border-t pt-4">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              {lang === "id" ? "Kategori Produk" : "Categories"}
+            </p>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              {categories.map((c) => (
+                <Link
+                  key={c.slug}
+                  to="/shop"
+                  search={{ category: c.slug }}
+                  onClick={() => setMenu(false)}
+                  className="py-1 text-muted-foreground hover:text-foreground transition truncate"
+                >
+                  {getCategoryLabel(c.slug, lang)}
+                </Link>
+              ))}
+            </div>
+          </div>
           {user && hasRole("admin") && <Link to="/seller" onClick={() => setMenu(false)} className="flex items-center gap-2 font-semibold"><LayoutDashboard className="h-4 w-4" /> {t("storeManagement")}</Link>}
         </SheetContent>
       </Sheet>

@@ -9,6 +9,18 @@ export type Lang = 'id' | 'en';
 
 export const translations = {
   en: {
+    // Categories
+    allCategories: 'All',
+    accessories: 'Accessories',
+    apparelCategory: 'Apparel',
+    badminton: 'Badminton',
+    basketballShoes: 'Basketball Shoes',
+    cycling: 'Cycling',
+    footballCleats: 'Football Cleats',
+    running: 'Running',
+    others: 'Others',
+    seeDescForSize: 'Size: See Description / Specifications',
+    filterByCategory: 'Filter by Category',
     // Nav
     newestDrop: 'Newest Drop',
     men: 'Men',
@@ -66,6 +78,18 @@ export const translations = {
     language: 'Language',
   },
   id: {
+    // Categories
+    allCategories: 'Semua',
+    accessories: 'Aksesoris',
+    apparelCategory: 'Pakaian',
+    badminton: 'Badminton',
+    basketballShoes: 'Sepatu Basket',
+    cycling: 'Sepeda',
+    footballCleats: 'Sepatu Bola',
+    running: 'Lari',
+    others: 'Lainnya',
+    seeDescForSize: 'Ukuran: Cek Deskripsi / Spesifikasi',
+    filterByCategory: 'Filter Kategori',
     // Nav
     newestDrop: 'Terbaru',
     men: 'Pria',

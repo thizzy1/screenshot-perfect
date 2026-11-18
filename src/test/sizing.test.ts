@@ -9,10 +9,17 @@ import {
   sortVariantSizes,
   sizeModeForCategory,
   isAccessoriesCategory,
+  isOthersCategory,
   oneSizeValue,
 } from '@/lib/sizing';
+import {
+  STANDARD_CATEGORIES,
+  getCategoryLabel,
+  mergeCategories,
+  normalizeCategorySlug,
+} from '@/lib/categories';
 
-describe('Product sizing', () => {
+describe('Product sizing and categories', () => {
   it('limits adult shoes to EU 39 through 45', () =>
     expect(sizesFor('adult')).toEqual(['39', '40', '41', '42', '43', '44', '45']));
 
@@ -27,10 +34,48 @@ describe('Product sizing', () => {
     expect(sizeModeForCategory('accessories', 'footwear')).toBe('one-size');
   });
 
+  it('treats Football Cleats as footwear mode', () => {
+    expect(sizeModeForCategory('football-cleats')).toBe('footwear');
+    expect(sizeModeForCategory('football')).toBe('footwear');
+  });
+
+  it('defaults Others to one-size mode while allowing flexible overrides', () => {
+    expect(isOthersCategory('Others')).toBe(true);
+    expect(isOthersCategory('others')).toBe(true);
+    expect(sizeModeForCategory('others')).toBe('one-size');
+    expect(sizeModeForCategory('others', 'footwear')).toBe('footwear');
+  });
+
   it('supports one-size equipment variants in badminton and cycling', () => {
     expect(sizeModeForCategory('badminton', 'one-size')).toBe('one-size');
     expect(sizeModeForCategory('cycling', 'one-size')).toBe('one-size');
     expect(sizeLabel(oneSizeValue)).toBe('One Size');
+  });
+
+  it('translates all 8 standard categories accurately in ID and EN', () => {
+    expect(getCategoryLabel('football-cleats', 'id')).toBe('Sepatu Bola');
+    expect(getCategoryLabel('football-cleats', 'en')).toBe('Football Cleats');
+    expect(getCategoryLabel('others', 'id')).toBe('Lainnya');
+    expect(getCategoryLabel('others', 'en')).toBe('Others');
+    expect(getCategoryLabel('basketball', 'id')).toBe('Sepatu Basket');
+    expect(getCategoryLabel('running', 'id')).toBe('Lari');
+    expect(getCategoryLabel('all', 'id')).toBe('Semua');
+    expect(getCategoryLabel('all', 'en')).toBe('All');
+  });
+
+  it('cleanly formats fallback unknown categories', () => {
+    expect(getCategoryLabel('padel-tennis', 'id')).toBe('Padel Tennis');
+  });
+
+  it('merges database categories with all 8 standard categories', () => {
+    const dbSample = [
+      { id: '11111111-1111-4111-8111-111111111111', name: 'Basketball Shoes', slug: 'basketball' },
+    ];
+    const merged = mergeCategories(dbSample);
+    expect(merged.length).toBe(STANDARD_CATEGORIES.length);
+    expect(merged.find((c) => c.slug === 'basketball')?.id).toBe('11111111-1111-4111-8111-111111111111');
+    expect(merged.some((c) => c.slug === 'football-cleats')).toBe(true);
+    expect(merged.some((c) => c.slug === 'others')).toBe(true);
   });
 
   it('provides comprehensive apparel size guide with chest width and length', () => {

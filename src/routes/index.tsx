@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProductCard, ProductCardSkeleton } from "@/components/store/ProductCard";
 import { CutoutImage } from "@/components/store/CutoutImage";
-import { catalogQuery, type CatalogProduct } from "@/lib/queries";
+import { catalogQuery, categoriesQuery, type CatalogProduct } from "@/lib/queries";
+import { mergeCategories, getCategoryLabel } from "@/lib/categories";
+import { useI18n } from "@/lib/i18n";
 import { formatIDR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +26,31 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
+function Chip({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean;
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-full border px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition shrink-0 inline-flex items-center gap-1.5 cursor-pointer",
+        active
+          ? "border-primary bg-primary text-primary-foreground shadow-sm"
+          : "bg-card hover:border-foreground/60 text-foreground"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 function Grid({ filters, limit }: { filters: Parameters<typeof catalogQuery>[0]; limit?: number }) {
   const { data, isLoading } = useQuery(catalogQuery(filters));
   const rows = (data ?? []).slice(0, limit);
@@ -35,7 +62,13 @@ function Grid({ filters, limit }: { filters: Parameters<typeof catalogQuery>[0];
 }
 
 function Home() {
+  const { lang } = useI18n();
   const { data: products, isLoading } = useQuery(catalogQuery({ sort: "new" }));
+  const { data: dbCategories } = useQuery(categoriesQuery);
+  const visibleCategories = mergeCategories(dbCategories);
+
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
+  const [selectedGender, setSelectedGender] = useState<string | undefined>();
   const [heroIdx, setHeroIdx] = useState(0);
 
   const productList = products ?? [];
@@ -248,15 +281,79 @@ function Home() {
         </section>
       )}
 
-      {/* 4. NEWEST DROPS SECTION */}
+      {/* 4. NEWEST DROPS & CATEGORY CATALOG SECTION */}
       <section className="mx-auto max-w-[1600px] px-4 py-16 md:px-7">
-        <div className="mb-6 flex items-end justify-between">
-          <h2 className="text-4xl font-bold uppercase md:text-5xl">Newest Drops</h2>
-          <Link to="/shop" search={{ sort: "new" }} className="text-sm font-semibold hover:underline">
-            Shop all
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-4xl font-bold uppercase md:text-5xl">
+              {lang === "id" ? "Koleksi Terbaru" : "Newest Drops"}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {lang === "id"
+                ? "Jelajahi koleksi sepatu, apparel, dan peralatan olahraga resmi Seaport."
+                : "Explore official Seaport footwear, apparel, and performance gear."}
+            </p>
+          </div>
+          <Link
+            to="/shop"
+            search={{
+              sort: "new",
+              category: selectedCategory,
+              gender: selectedGender,
+            }}
+            className="text-sm font-semibold hover:underline"
+          >
+            {lang === "id" ? "Lihat Semua di Shop" : "Shop all"} &rarr;
           </Link>
         </div>
-        <Grid filters={{ sort: "new" }} limit={8} />
+
+        {/* DYNAMIC CATEGORY & GENDER FILTER PILLS BAR */}
+        <div className="mb-8 overflow-x-auto scrollbar-none pb-2 pt-1 -mx-4 px-4 md:mx-0 md:px-0">
+          <div className="flex items-center gap-2 flex-nowrap w-max">
+            <Chip
+              active={!selectedCategory}
+              onClick={() => setSelectedCategory(undefined)}
+            >
+              {getCategoryLabel("all", lang)}
+            </Chip>
+            {visibleCategories.map((c) => (
+              <Chip
+                key={c.slug}
+                active={selectedCategory === c.slug}
+                onClick={() =>
+                  setSelectedCategory(
+                    selectedCategory === c.slug ? undefined : c.slug
+                  )
+                }
+              >
+                {getCategoryLabel(c.slug, lang)}
+              </Chip>
+            ))}
+
+            <span className="mx-1.5 h-6 w-px bg-border shrink-0" />
+
+            {(["men", "women"] as const).map((g) => (
+              <Chip
+                key={g}
+                active={selectedGender === g}
+                onClick={() =>
+                  setSelectedGender(selectedGender === g ? undefined : g)
+                }
+              >
+                {getCategoryLabel(g, lang)}
+              </Chip>
+            ))}
+          </div>
+        </div>
+
+        <Grid
+          filters={{
+            sort: "new",
+            category: selectedCategory,
+            gender: selectedGender,
+          }}
+          limit={8}
+        />
       </section>
     </div>
   );

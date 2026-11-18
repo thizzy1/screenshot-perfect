@@ -17,7 +17,9 @@ import { ProductCard } from "@/components/store/ProductCard";
 import { SizeGuideModal } from "@/components/store/SizeGuideModal";
 import { cn } from "@/lib/utils";
 import { productImageBlendClass, productImageFrameClass } from '@/lib/product-image';
-import { isAccessoriesCategory, type SizeGroup, sizeModeForCategory, sizeOptionsForMode, oneSizeValue } from '@/lib/sizing';
+import { isAccessoriesCategory, isOthersCategory, type SizeGroup, sizeModeForCategory, sizeOptionsForMode, oneSizeValue, kidsShoeSizes } from '@/lib/sizing';
+import { useI18n } from '@/lib/i18n';
+import { getCategoryLabel } from '@/lib/categories';
 
 export const Route = createFileRoute("/product/$slug")({
   head: ({ params }) => {
@@ -37,6 +39,7 @@ export const Route = createFileRoute("/product/$slug")({
 });
 
 function ProductPage() {
+  const { lang, t } = useI18n();
   const { slug } = Route.useParams();
   const { user, hasRole } = useAuth();
   const { data: p, isLoading } = useQuery(productQuery(slug));
@@ -80,11 +83,23 @@ function ProductPage() {
 
   const categorySlug = p.category?.slug ?? '';
   const isAccessories = isAccessoriesCategory(categorySlug) || isAccessoriesCategory(p.category?.name);
+  const isOthers = isOthersCategory(categorySlug) || isOthersCategory(p.category?.name);
   const isApparel = categorySlug === 'apparel';
   const isSpecialCategory = ['badminton', 'cycling'].includes(categorySlug);
   const explicitMode = (p.specs as Record<string, any> | null)?.['size_mode'] ?? null;
-  const finalMode = isAccessories ? 'one-size' : isSpecialCategory ? mode : sizeModeForCategory(categorySlug, explicitMode);
-  const variantValues = finalMode === 'one-size' ? [oneSizeValue] : sizeOptionsForMode(finalMode, isApparel ? 'apparel' : group);
+  const finalMode = isAccessories
+    ? 'one-size'
+    : isOthers
+    ? (explicitMode === 'footwear' || explicitMode === 'apparel' ? explicitMode : 'one-size')
+    : isSpecialCategory
+    ? mode
+    : sizeModeForCategory(categorySlug, explicitMode);
+
+  const hasOnlyOneSize = isAccessories || (isOthers && (p.variants.length === 0 || p.variants.every((v) => v.size === oneSizeValue) || finalMode === 'one-size'));
+  const hasKidsVariants = p.variants.some((v) => kidsShoeSizes.includes(v.size as any));
+  const categoryLabel = getCategoryLabel(categorySlug || p.category?.name, lang);
+
+  const variantValues = hasOnlyOneSize ? [oneSizeValue] : sizeOptionsForMode(finalMode, isApparel ? 'apparel' : group);
   const prevImage = () => setImg((prev) => (p.images.length ? (prev - 1 + p.images.length) % p.images.length : 0));
   const nextImage = () => setImg((prev) => (p.images.length ? (prev + 1) % p.images.length : 0));
   const variants = variantValues.map((value) => {
@@ -94,7 +109,7 @@ function ProductPage() {
     }
     return p.variants.find((v) => v.size === value) ?? { id: value, size: value, stock: 0 };
   });
-  const selected = variants.find((v) => v.size === (finalMode === 'one-size' ? oneSizeValue : size));
+  const selected = variants.find((v) => v.size === (hasOnlyOneSize ? oneSizeValue : size));
   const add = (buy: boolean) => {
     if (isAdmin) {
       toast.error('Admin toko tidak dapat membeli produk sendiri.');
@@ -184,7 +199,9 @@ function ProductPage() {
         </div>
         <div className="space-y-6">
           <div>
-            <p className="text-sm uppercase tracking-wider text-muted-foreground font-semibold">SEAPORT OFFICIAL · {p.category?.name}</p>
+            <p className="text-sm uppercase tracking-wider text-muted-foreground font-semibold">
+              SEAPORT OFFICIAL{categoryLabel ? ` · ${categoryLabel}` : ''}
+            </p>
             <h1 className="text-5xl font-extrabold uppercase md:text-6xl">{p.name}</h1>
             <p className="mt-2 text-2xl font-semibold">{formatIDR(p.price)}</p>
           </div>
@@ -197,41 +214,44 @@ function ProductPage() {
                 <Button variant={finalMode === 'one-size' ? 'default' : 'outline'} onClick={() => { setMode('one-size'); setSize(oneSizeValue); }}>Equipment · One Size</Button>
               </div>
             )}
-            {!isApparel && !isSpecialCategory && !isAccessories && (
+            {!isApparel && !isSpecialCategory && !hasOnlyOneSize && hasKidsVariants && (
               <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Age group">
-                <Button variant={group === 'adult' ? 'default' : 'outline'} onClick={() => { setGroup('adult'); setSize(null); }}>Adult · EU 39–45</Button>
-                <Button variant={group === 'kids' ? 'default' : 'outline'} onClick={() => { setGroup('kids'); setSize(null); }}>Kids · EU 29–37</Button>
+                <Button variant={group === 'adult' ? 'default' : 'outline'} onClick={() => { setGroup('adult'); setSize(null); }}>
+                  {t('adultSize')}
+                </Button>
+                <Button variant={group === 'kids' ? 'default' : 'outline'} onClick={() => { setGroup('kids'); setSize(null); }}>
+                  {t('kidsSize')}
+                </Button>
               </div>
             )}
-            {isAccessories ? (
+            {hasOnlyOneSize ? (
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-sm font-semibold">
-                <span>Ukuran: Cek Deskripsi / Spesifikasi</span>
-                {selected && <span className="text-muted-foreground">{selected.stock} in stock</span>}
+                <span>{t('seeDescForSize')}</span>
+                {selected && <span className="text-muted-foreground">{selected.stock} {t('inStock')}</span>}
               </div>
             ) : (
               <>
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-sm font-semibold">
                   <div className="flex items-center gap-2">
-                    <span>{finalMode === 'one-size' ? 'Select sizing' : isApparel ? 'Select size' : 'Select size (EU)'}</span>
+                    <span>{finalMode === 'one-size' ? t('selectSize') : isApparel ? t('selectSize') : t('selectSizeEU')}</span>
                     {!finalMode || finalMode === 'one-size' ? null : <SizeGuideModal defaultCategory={isApparel ? 'apparel' : 'footwear'} />}
                   </div>
-                  {selected && <span className="text-muted-foreground">{selected.stock} in stock</span>}
+                  {selected && <span className="text-muted-foreground">{selected.stock} {t('inStock')}</span>}
                 </div>
                 {finalMode === 'one-size' ? (
-              <div className="rounded-xl border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
-                Ukuran: <span className="font-semibold text-foreground">One Size</span>
-                <p className="mt-1 text-xs">Mode equipment / accessories: stok dihitung per set produk dan item dapat langsung ditambahkan ke keranjang.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
-                {variants.map((v) => (
-                  <Button key={v.id} variant="outline" aria-label={`Size ${v.size}${v.stock === 0 ? ', unavailable' : ''}`} disabled={v.stock === 0} onClick={() => setSize(v.size)}
-                    className={cn("h-12 rounded-md border font-semibold transition", size === v.size ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-foreground", v.stock === 0 && "cursor-not-allowed line-through opacity-40")}>
-                    {v.size}
-                  </Button>
-                ))}
-              </div>
-            )}
+                  <div className="rounded-xl border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
+                    {t('seeDescForSize')}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+                    {variants.map((v) => (
+                      <Button key={v.id} variant="outline" aria-label={`Size ${v.size}${v.stock === 0 ? ', unavailable' : ''}`} disabled={v.stock === 0} onClick={() => setSize(v.size)}
+                        className={cn("h-12 rounded-md border font-semibold transition", size === v.size ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-foreground", v.stock === 0 && "cursor-not-allowed line-through opacity-40")}>
+                        {v.size}
+                      </Button>
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </div>

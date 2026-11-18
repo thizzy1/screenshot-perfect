@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { ShieldCheck, Truck, RefreshCw, CreditCard, Sparkles } from "lucide-react";
-import logo from "@/assets/Seaport.png.asset.json";
 import { SizeGuideModal } from "@/components/store/SizeGuideModal";
 import { Badge } from "@/components/ui/badge";
 
@@ -73,7 +72,7 @@ export function SiteFooter() {
         {/* BRAND IDENTITY */}
         <div className="space-y-4">
           <Link to="/" className="inline-block" aria-label="Seaport Home">
-            <img src={logo.url} alt="Seaport" className="h-8 w-auto object-contain brightness-0 invert" />
+            <img src="/Seaport.png" alt="Seaport" className="h-8 w-auto object-contain brightness-0 invert" />
           </Link>
           <p className="text-sm opacity-80 leading-relaxed">
             Official Store sportswear & footwear premium terpercaya di Indonesia. Dapatkan sepatu basket ANTA KAI, PG7, running shoes, dan perlengkapan olahraga 100% original.

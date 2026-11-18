@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { SearchX, Check, X, SlidersHorizontal } from "lucide-react";
 import { ProductCard, ProductCardSkeleton } from "@/components/store/ProductCard";
 import { catalogQuery, categoriesQuery, type CatalogFilters } from "@/lib/queries";
+import { mergeCategories, getCategoryLabel } from "@/lib/categories";
+import { useI18n } from "@/lib/i18n";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -65,12 +67,9 @@ function Chip({
 
 const QUICK_SHOE_SIZES = ["39", "40", "41", "42", "43", "44", "45"] as const;
 const QUICK_APPAREL_SIZES = ["S", "M", "L", "XL"] as const;
-const FALLBACK_CATEGORIES = [
-  { id: "badminton", name: "Badminton", slug: "badminton" },
-  { id: "cycling", name: "Cycling", slug: "cycling" },
-] as const;
 
 function Shop() {
+  const { lang, t } = useI18n();
   const f = Route.useSearch();
   const navigate = useNavigate({ from: "/shop" });
   const set = (patch: Partial<CatalogFilters>) =>
@@ -78,19 +77,21 @@ function Shop() {
 
   const { data, isLoading } = useQuery(catalogQuery(f));
   const { data: cats } = useQuery(categoriesQuery);
-  const visibleCategories = [...(cats ?? []), ...FALLBACK_CATEGORIES.filter((c) => !(cats ?? []).some((existing) => existing.slug === c.slug))];
+  const visibleCategories = mergeCategories(cats);
 
   const title = f.q
     ? `Results for “${f.q}”`
     : f.collection
     ? `${f.collection} Collection`
     : f.gender
-    ? `${f.gender === "men" ? "Men" : "Women"}`
-    : "Shop all";
+    ? getCategoryLabel(f.gender, lang)
+    : f.category
+    ? getCategoryLabel(f.category, lang)
+    : lang === "id" ? "Semua Produk" : "Shop all";
 
   const isApparelCategory = f.category === "apparel";
   const isAccessories = isAccessoriesCategory(f.category);
-  const supportsOneSize = f.category === "badminton" || f.category === "cycling";
+  const supportsOneSize = f.category === "badminton" || f.category === "cycling" || f.category === "others";
   const hasActiveFilters = Boolean(
     f.q ||
     f.category ||
@@ -107,50 +108,56 @@ function Shop() {
         <h1 className="text-5xl font-extrabold uppercase md:text-6xl">{title}</h1>
         {data && (
           <p className="text-sm text-muted-foreground font-medium">
-            Menampilkan <span className="text-foreground font-bold">{data.length}</span> produk
+            {lang === "id" ? "Menampilkan" : "Showing"}{" "}
+            <span className="text-foreground font-bold">{data.length}</span>{" "}
+            {lang === "id" ? "produk" : "products"}
           </p>
         )}
       </div>
 
-      {/* FILTER ROW 1: Kategori, Gender & Sort */}
-      <div className="mt-6 flex flex-wrap items-center gap-2">
-        <Chip active={!f.category} onClick={() => set({ category: undefined })}>
-          All
-        </Chip>
-        {visibleCategories.map((c) => (
-          <Chip
-            key={c.id}
-            active={f.category === c.slug}
-            onClick={() => {
-              const nextCategory = f.category === c.slug ? undefined : c.slug;
-              set({ category: nextCategory, size: isAccessoriesCategory(nextCategory) ? undefined : f.size });
-            }}
-          >
-            {c.name}
-          </Chip>
-        ))}
+      {/* FILTER ROW 1: Kategori, Gender & Sort (Horizontal scrollable with overflow-x-auto flex-nowrap) */}
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="overflow-x-auto scrollbar-none pb-2 pt-1 -mx-4 px-4 md:mx-0 md:px-0 flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-nowrap w-max">
+            <Chip active={!f.category} onClick={() => set({ category: undefined })}>
+              {getCategoryLabel("all", lang)}
+            </Chip>
+            {visibleCategories.map((c) => (
+              <Chip
+                key={c.id}
+                active={f.category === c.slug}
+                onClick={() => {
+                  const nextCategory = f.category === c.slug ? undefined : c.slug;
+                  set({ category: nextCategory, size: isAccessoriesCategory(nextCategory) ? undefined : f.size });
+                }}
+              >
+                {getCategoryLabel(c.slug, lang)}
+              </Chip>
+            ))}
 
-        <span className="mx-1 hidden h-6 w-px bg-border md:block" />
+            <span className="mx-1 h-5 w-px bg-border shrink-0" />
 
-        {(["men", "women"] as const).map((g) => (
-          <Chip
-            key={g}
-            active={f.gender === g}
-            onClick={() => set({ gender: f.gender === g ? undefined : g })}
-          >
-            {g === "men" ? "Men" : "Women"}
-          </Chip>
-        ))}
+            {(["men", "women"] as const).map((g) => (
+              <Chip
+                key={g}
+                active={f.gender === g}
+                onClick={() => set({ gender: f.gender === g ? undefined : g })}
+              >
+                {getCategoryLabel(g, lang)}
+              </Chip>
+            ))}
+          </div>
+        </div>
 
-        <div className="ml-auto w-48">
+        <div className="w-44 shrink-0">
           <Select value={f.sort ?? "new"} onValueChange={(v) => set({ sort: v })}>
             <SelectTrigger className="rounded-full bg-card h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="new">Newest</SelectItem>
-              <SelectItem value="price-asc">Price: low to high</SelectItem>
-              <SelectItem value="price-desc">Price: high to low</SelectItem>
+              <SelectItem value="new">{lang === "id" ? "Terbaru" : "Newest"}</SelectItem>
+              <SelectItem value="price-asc">{lang === "id" ? "Harga: Termurah" : "Price: low to high"}</SelectItem>
+              <SelectItem value="price-desc">{lang === "id" ? "Harga: Tertinggi" : "Price: high to low"}</SelectItem>
             </SelectContent>
           </Select>
         </div>
