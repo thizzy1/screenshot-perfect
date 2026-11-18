@@ -1,4 +1,5 @@
 # Seaport completion
+- [ ] Website review completed; proposed payment, delivery, access, tracking, stock, and catalog fixes awaiting user confirmation
 - [ ] Fix email-only signup, sign-in and session handling
 - [ ] Adult EU 39–45 and kids EU 29–37 sizing
 - [ ] Add Nike club jersey, Nike shorts and Li-Ning Wade catalog entries with researched pricing
