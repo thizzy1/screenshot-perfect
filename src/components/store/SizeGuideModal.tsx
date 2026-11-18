@@ -153,7 +153,7 @@ export function SizeGuideModal({
                   className="h-7 px-2.5 text-xs font-semibold"
                   onClick={() => setShoeGroup("adult")}
                 >
-                  Dewasa (EU 36–45)
+                  Dewasa (EU 39–45)
                 </Button>
                 <Button
                   type="button"

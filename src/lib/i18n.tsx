@@ -35,7 +35,7 @@ export const translations = {
     openCart: 'Open cart',
     openMenu: 'Open menu',
     // Announcement bar
-    freeShipping: 'Free shipping across Indonesia for orders above Rp 1,000,000 · 100% Original Products',
+    freeShipping: 'Seaport Sportswear · Delivery calculated at checkout',
     // Product page
     selectSize: 'Select size',
     selectSizeEU: 'Select size (EU)',
@@ -48,7 +48,7 @@ export const translations = {
     specifications: 'Specifications',
     youMayAlsoLike: 'You may also like',
     shipsAcrossIndonesia: 'Ships across Indonesia',
-    officialAuthentic: '100% Official & Authentic',
+    officialAuthentic: 'Seaport Sportswear',
     productNotFound: 'Product not found',
     backToShop: 'Back to shop',
     // Shop
@@ -104,7 +104,7 @@ export const translations = {
     openCart: 'Buka keranjang',
     openMenu: 'Buka menu',
     // Announcement bar
-    freeShipping: 'Gratis Ongkir Seluruh Indonesia untuk Pembelian di Atas Rp 1.000.000 · 100% Produk Original',
+    freeShipping: 'Seaport Sportswear · Ongkir dihitung saat checkout',
     // Product page
     selectSize: 'Pilih ukuran',
     selectSizeEU: 'Pilih ukuran (EU)',
@@ -117,7 +117,7 @@ export const translations = {
     specifications: 'Spesifikasi',
     youMayAlsoLike: 'Produk Serupa',
     shipsAcrossIndonesia: 'Pengiriman ke seluruh Indonesia',
-    officialAuthentic: '100% Resmi & Original',
+    officialAuthentic: 'Seaport Sportswear',
     productNotFound: 'Produk tidak ditemukan',
     backToShop: 'Kembali ke toko',
     // Shop

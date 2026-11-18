@@ -113,6 +113,7 @@ export type Database = {
           store_id: string
           subtotal: number
           total: number
+          tracking_number: string | null
         }
         Insert: {
           checkout_id: string
@@ -136,6 +137,7 @@ export type Database = {
           store_id: string
           subtotal: number
           total: number
+          tracking_number?: string | null
         }
         Update: {
           checkout_id?: string
@@ -159,6 +161,7 @@ export type Database = {
           store_id?: string
           subtotal?: number
           total?: number
+          tracking_number?: string | null
         }
         Relationships: [
           {
@@ -385,6 +388,11 @@ export type Database = {
           _shipping: Json
         }
         Returns: string
+      }
+      require_active_account: { Args: never; Returns: undefined }
+      ship_order: {
+        Args: { _order: string; _tracking: string }
+        Returns: undefined
       }
       simulate_payment: { Args: { _checkout: string }; Returns: undefined }
       update_order_status: {

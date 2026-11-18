@@ -7,7 +7,7 @@ export type UserBanProfile = {
 export function isUserBanned(profile?: UserBanProfile | null): boolean {
   if (!profile) return false;
   if (profile.is_banned === true) return true;
-  if (typeof profile.status === 'string' && profile.status.toLowerCase() === 'banned') return true;
+  if (typeof profile.status === 'string' && profile.status.toLowerCase() !== 'active') return true;
   return false;
 }
 

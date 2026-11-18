@@ -85,7 +85,7 @@ describe('Product sizing and categories', () => {
   });
 
   it('provides footwear size guide with insole and outsole specs', () => {
-    expect(adultShoeSizeGuide.length).toBe(10);
+    expect(adultShoeSizeGuide.map(g => g.eu)).toEqual(['39', '40', '41', '42', '43', '44', '45']);
     expect(adultShoeSizeGuide.find((g) => g.eu === '42')?.insole).toBe('26.5 cm');
     expect(kidsShoeSizeGuide.find((g) => g.eu === '29')?.insole).toBe('18.0 cm');
   });

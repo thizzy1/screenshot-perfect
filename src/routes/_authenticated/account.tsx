@@ -68,7 +68,7 @@ function Account() {
               {profile?.full_name || user?.email?.split('@')[0] || 'Seaport Member'}
             </h2>
             <p className="text-xs md:text-sm opacity-80 mt-1">
-              Member resmi Seaport. Nikmati prioritas akses drop sepatu basket, promo khusus member, dan garansi keaslian 100%.
+              Akun Seaport · {user?.email}
             </p>
           </div>
           <div className="flex flex-col items-start sm:items-end text-xs opacity-75">
@@ -80,15 +80,15 @@ function Account() {
         <div className="mt-6 grid grid-cols-1 gap-3 border-t border-white/10 pt-5 sm:grid-cols-3 text-xs">
           <div className="flex items-center gap-2">
             <Truck className="h-4 w-4 shrink-0 text-white" />
-            <span>Gratis Ongkir min. Rp 1.000.000</span>
+            <span>Ongkir dihitung saat checkout</span>
           </div>
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 shrink-0 text-white" />
-            <span>100% Produk Original & Terverifikasi</span>
+            <span>Riwayat pesanan</span>
           </div>
           <div className="flex items-center gap-2">
             <RefreshCw className="h-4 w-4 shrink-0 text-white" />
-            <span>Garansi 30 Hari Tukar Ukuran</span>
+            <span>Panduan ukuran EU 39–45 / 29–37</span>
           </div>
         </div>
       </div>

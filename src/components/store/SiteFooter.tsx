@@ -15,10 +15,10 @@ export function SiteFooter() {
             </div>
             <div>
               <p className="font-bold uppercase tracking-wider text-sm">
-                100% Authentic Sportswear
+                Seaport Sportswear
               </p>
               <p className="text-xs opacity-75">
-                Jaminan keaslian original atau uang kembali 100%
+                Sepatu, jersey, dan perlengkapan olahraga
               </p>
             </div>
           </div>
@@ -43,10 +43,10 @@ export function SiteFooter() {
             </div>
             <div>
               <p className="font-bold uppercase tracking-wider text-sm">
-                Verified Seller Network
+                Katalog Seaport
               </p>
               <p className="text-xs opacity-75">
-                Setiap toko dikurasi dan diverifikasi oleh admin Seaport
+                Koleksi sportswear dan footwear
               </p>
             </div>
           </div>
@@ -57,10 +57,10 @@ export function SiteFooter() {
             </div>
             <div>
               <p className="font-bold uppercase tracking-wider text-sm">
-                Tukar Ukuran Fleksibel
+                Panduan Ukuran
               </p>
               <p className="text-xs opacity-75">
-                Garansi penyesuaian ukuran bila sepatu tidak pas
+                Dewasa EU 39–45 · Anak EU 29–37
               </p>
             </div>
           </div>
@@ -75,7 +75,7 @@ export function SiteFooter() {
             <img src="/Seaport.png" alt="Seaport" className="h-8 w-auto object-contain brightness-0 invert" />
           </Link>
           <p className="text-sm opacity-80 leading-relaxed">
-            Official Store sportswear & footwear premium terpercaya di Indonesia. Dapatkan sepatu basket ANTA KAI, PG7, running shoes, dan perlengkapan olahraga 100% original.
+            Seaport sportswear & footwear. Sepatu basket ANTA KAI, PG7, running shoes, dan perlengkapan olahraga.
           </p>
           <div className="pt-2">
             <Badge variant="outline" className="border-white/20 text-white/90 text-xs">
@@ -163,7 +163,7 @@ export function SiteFooter() {
             <span>Metode Pembayaran</span>
           </p>
           <p className="text-xs opacity-75">
-            Didukung pembayaran aman & instan melalui payment gateway resmi:
+            Pembayaran simulasi saja. Jangan transfer dana nyata; payment gateway belum terhubung.
           </p>
           <div className="flex flex-wrap gap-1.5 pt-1">
             <span className="rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-xs font-bold tracking-wide">
@@ -196,7 +196,7 @@ export function SiteFooter() {
 
       {/* COPYRIGHT & COMPLIANCE */}
       <div className="border-t border-white/10 py-6 text-center text-xs opacity-60">
-        <p>© {new Date().getFullYear()} Seaport Marketplace. All rights reserved · 100% Authentic Sportswear Marketplace.</p>
+        <p>© {new Date().getFullYear()} Seaport. All rights reserved.</p>
       </div>
     </footer>
   );

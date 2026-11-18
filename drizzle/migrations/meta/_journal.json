@@ -22,6 +22,13 @@
       "when": 1794789247908,
       "tag": "0002_secure_marketplace_operations",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794972295008,
+      "tag": "0003_secure_order_tracking_and_account_access",
+      "breakpoints": true
     }
   ]
 }

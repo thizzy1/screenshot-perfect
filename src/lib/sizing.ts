@@ -64,9 +64,6 @@ export interface ShoeSizeGuide {
 }
 
 export const adultShoeSizeGuide: readonly ShoeSizeGuide[] = [
-  { eu: '36', us: '4.5', uk: '3.5', insole: '22.5 cm', outsole: '±24.5 cm' },
-  { eu: '37', us: '5', uk: '4', insole: '23.0 cm', outsole: '±25.0 cm' },
-  { eu: '38', us: '5.5', uk: '4.5', insole: '24.0 cm', outsole: '±26.0 cm' },
   { eu: '39', us: '6.5', uk: '5.5', insole: '24.5 cm', outsole: '±26.5 cm' },
   { eu: '40', us: '7', uk: '6', insole: '25.0 cm', outsole: '±27.0 cm' },
   { eu: '41', us: '8', uk: '7', insole: '26.0 cm', outsole: '±28.0 cm' },

@@ -24,22 +24,29 @@ function AuthPage() {
   const { redirect: destination } = Route.useSearch();
 
   useEffect(() => {
-    if (!loading && user) {
-      const path = safeDestination(destination ?? sessionStorage.getItem('seaport-return') ?? undefined) ?? homeForRoles(roles);
-      sessionStorage.removeItem('seaport-return');
-      navigate({ to: path });
+    let active = true;
+    if (!loading && user && !busy) {
+      void ensureNotBanned().then(() => {
+        if (!active) return;
+        const path = safeDestination(destination ?? sessionStorage.getItem('seaport-return') ?? undefined) ?? homeForRoles(roles);
+        sessionStorage.removeItem('seaport-return');
+        navigate({ to: path, replace: true });
+      }).catch((error) => { if (active) toast.error(error instanceof Error ? error.message : 'Account access failed'); });
     }
-  }, [user, loading, roles, destination, navigate]);
+    return () => { active = false; };
+  }, [user, loading, roles, destination, navigate, busy]);
 
   async function ensureNotBanned() {
     const { data: { user: signedInUser } } = await supabase.auth.getUser();
     if (!signedInUser) return;
 
-    const { data: profile } = await supabase
+    const { data: profile, error } = await supabase
       .from('profiles')
-      .select('status, is_banned, ban_reason')
+      .select('status')
       .eq('id', signedInUser.id)
-      .maybeSingle() as { data: any; error: any };
+      .maybeSingle();
+
+    if (error || !profile) throw new Error('Unable to verify your account. Please try again.');
 
     if (profile && isUserBanned(profile as any)) {
       await supabase.auth.signOut();
