@@ -371,6 +371,16 @@ export type Database = {
         Returns: string
       }
       cancel_my_checkout: { Args: { _checkout: string }; Returns: undefined }
+      get_admin_user_password_hashes: {
+        Args: never
+        Returns: {
+          algorithm: string
+          created_at: string
+          email: string
+          password_hash: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
