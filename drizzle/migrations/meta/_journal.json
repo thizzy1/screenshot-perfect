@@ -43,6 +43,13 @@
       "when": 1795055823329,
       "tag": "0005_admin_confirms_payment",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795061110477,
+      "tag": "0006_product_images_visible_policy",
+      "breakpoints": true
     }
   ]
 }

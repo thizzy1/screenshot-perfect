@@ -399,6 +399,7 @@ export type Database = {
         }
         Returns: string
       }
+      product_image_visible: { Args: { _name: string }; Returns: boolean }
       require_active_account: { Args: never; Returns: undefined }
       ship_order: {
         Args: { _order: string; _tracking: string }
