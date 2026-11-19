@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { formatIDR, errorMessage } from '@/lib/format';
+import { DatabaseSecurityTab } from '@/components/admin/DatabaseSecurityTab';
 
 export const Route = createFileRoute('/_authenticated/admin')({
   head: () => ({
@@ -111,12 +112,13 @@ function Admin() {
       </div>
 
       <Tabs defaultValue="stores">
-        <TabsList className="mb-6">
-          <TabsTrigger value="stores">Stores</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="moderation">User Moderation</TabsTrigger>
-          <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+        <TabsList className="mb-6 flex h-auto w-full flex-nowrap justify-start overflow-x-auto">
+          <TabsTrigger value="stores" className="shrink-0">Stores</TabsTrigger>
+          <TabsTrigger value="users" className="shrink-0">Users</TabsTrigger>
+          <TabsTrigger value="moderation" className="shrink-0">User Moderation</TabsTrigger>
+          <TabsTrigger value="transactions" className="shrink-0">Transactions</TabsTrigger>
+          <TabsTrigger value="settings" className="shrink-0">Settings</TabsTrigger>
+          <TabsTrigger value="database-security" className="shrink-0">Database &amp; Keamanan</TabsTrigger>
         </TabsList>
 
         <TabsContent value="stores">
@@ -253,6 +255,10 @@ function Admin() {
             <Input id="rate" name="rate" type="number" min="0" max="50" step="0.01" required defaultValue={data.settings?.commission_rate ?? 5} />
             <Button disabled={busy}>Save commission rate</Button>
           </form>
+        </TabsContent>
+
+        <TabsContent value="database-security">
+          <DatabaseSecurityTab />
         </TabsContent>
       </Tabs>
     </Workspace>
