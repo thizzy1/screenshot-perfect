@@ -1,7 +1,16 @@
 import "./lib/error-capture";
+import { configureCatalogCacheAdapter, createUpstashRestCacheAdapter } from "./lib/catalog-cache";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+
+const upstashUrl = process.env["UPSTASH_REDIS_REST_URL"];
+const upstashToken = process.env["UPSTASH_REDIS_REST_TOKEN"];
+if (upstashUrl && upstashToken) {
+  configureCatalogCacheAdapter(createUpstashRestCacheAdapter(upstashUrl, upstashToken));
+} else if (upstashUrl || upstashToken) {
+  console.warn("Upstash catalog cache is disabled; both REST URL and token are required.");
+}
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;

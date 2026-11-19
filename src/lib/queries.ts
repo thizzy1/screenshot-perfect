@@ -1,5 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { clearCatalogCache, fetchCachedCatalog } from "@/lib/catalog-cache";
 
 export const productSelect =
   "id, name, slug, price, images, gender, collection, featured, created_at, description, specs, category:categories(name, slug), store:stores(name, slug), variants:product_variants(id, size, stock)";
@@ -17,7 +18,7 @@ export type CatalogFilters = {
   maxPrice?: number | string | undefined;
 };
 
-async function fetchCatalog(f: CatalogFilters) {
+async function fetchCatalogFromDatabase(f: CatalogFilters) {
   let q = supabase.from("products").select(productSelect).eq("is_active", true);
   if (f.q) q = q.ilike("name", `%${f.q}%`);
   if (f.gender) q = q.in("gender", [f.gender, "unisex"]);
@@ -36,7 +37,7 @@ async function fetchCatalog(f: CatalogFilters) {
   if (f.size) {
     const targetSize = f.size.trim();
     rows = rows.filter((r) =>
-      r.variants?.some((v) => v.size === targetSize && (!f.inStock || v.stock > 0))
+      r.variants?.some((v) => v.size === targetSize && (!f.inStock || v.stock > 0)),
     );
   }
 
@@ -67,15 +68,32 @@ async function fetchCatalog(f: CatalogFilters) {
   return rows;
 }
 
-export const catalogQuery = (f: CatalogFilters) =>
-  queryOptions({ queryKey: ["catalog", f], queryFn: () => fetchCatalog(f) });
+export async function fetchCatalogWithMetrics(f: CatalogFilters) {
+  return fetchCachedCatalog(f, () => fetchCatalogFromDatabase(f));
+}
 
-export type CatalogProduct = Awaited<ReturnType<typeof fetchCatalog>>[number];
+export async function benchmarkCatalogCache(f: CatalogFilters) {
+  await clearCatalogCache();
+  const miss = await fetchCatalogWithMetrics(f);
+  const hit = await fetchCatalogWithMetrics(f);
+  return { miss: miss.metrics, hit: hit.metrics, productCount: hit.data.length };
+}
+
+export const catalogQuery = (f: CatalogFilters) =>
+  queryOptions({
+    queryKey: ["catalog", f],
+    queryFn: async () => (await fetchCatalogWithMetrics(f)).data,
+  });
+
+export type CatalogProduct = Awaited<ReturnType<typeof fetchCatalogFromDatabase>>[number];
 
 export const categoriesQuery = queryOptions({
   queryKey: ["categories"],
   queryFn: async () => {
-    const { data, error } = await supabase.from("categories").select("id, name, slug").order("name");
+    const { data, error } = await supabase
+      .from("categories")
+      .select("id, name, slug")
+      .order("name");
     if (error) throw error;
     return data;
   },
@@ -85,7 +103,11 @@ export const productQuery = (slug: string) =>
   queryOptions({
     queryKey: ["product", slug],
     queryFn: async () => {
-      const { data, error } = await supabase.from("products").select(productSelect).eq("slug", slug).maybeSingle();
+      const { data, error } = await supabase
+        .from("products")
+        .select(productSelect)
+        .eq("slug", slug)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },

@@ -19,6 +19,12 @@ import {
     CheckCircle,
     X,
     Image as ImageIcon,
+    Database,
+    Download,
+    FileCheck2,
+    RefreshCw,
+    ShieldCheck,
+    Timer,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
@@ -48,6 +54,15 @@ import {
 import { useI18n } from '@/lib/i18n';
 import { mergeCategories, getCategoryLabel, ensureCategoryInDb } from '@/lib/categories';
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip } from 'recharts';
+import { benchmarkCatalogCache } from '@/lib/queries';
+import { clearCatalogCache } from '@/lib/catalog-cache';
+import { clearServerCatalogCache } from '@/lib/catalog-cache.functions';
+import {
+    collectDatabaseBackup,
+    downloadDatabaseBackup,
+    validateDatabaseBackup,
+    type BackupValidationResult,
+} from '@/lib/database-backup';
 
 export const Route = createFileRoute('/_authenticated/seller')({
     head: () => ({
@@ -108,6 +123,11 @@ function Seller() {
     const [shippingOrder, setShippingOrder] = useState<Tables<'orders'> | null>(null);
     const [resiInput, setResiInput] = useState<string>('');
     const [shippingDialogOpen, setShippingDialogOpen] = useState(false);
+    const [benchmark, setBenchmark] = useState<Awaited<ReturnType<typeof benchmarkCatalogCache>> | null>(null);
+    const [benchmarkBusy, setBenchmarkBusy] = useState(false);
+    const [backupBusy, setBackupBusy] = useState(false);
+    const [backupFile, setBackupFile] = useState<File | null>(null);
+    const [restoreValidation, setRestoreValidation] = useState<BackupValidationResult | null>(null);
 
     const { data: store, isPending, error } = useQuery({
         queryKey: ['own-store', user?.id],
@@ -180,12 +200,73 @@ function Seller() {
         setBusy(true);
         try {
             await fn();
+            await clearCatalogCache();
+            await clearServerCatalogCache();
             await qc.invalidateQueries();
             toast.success('Perubahan berhasil disimpan');
         } catch (e) {
             toast.error(errorMessage(e));
         } finally {
             setBusy(false);
+        }
+    }
+
+    async function runCatalogBenchmark() {
+        setBenchmarkBusy(true);
+        try {
+            await clearServerCatalogCache();
+            const result = await benchmarkCatalogCache({ sort: 'new' });
+            setBenchmark(result);
+        } catch (e) {
+            toast.error(errorMessage(e));
+        }
+        finally {
+            setBenchmarkBusy(false);
+        }
+    }
+
+    async function refreshCatalogCache() {
+        await clearCatalogCache();
+        await clearServerCatalogCache();
+        await qc.invalidateQueries({ queryKey: ['catalog'] });
+        setBenchmark(null);
+        toast.success('Cache katalog dihapus; daftar produk siap dimuat ulang.');
+    }
+
+    async function exportDatabaseBackup(format: 'json' | 'sql') {
+        setBackupBusy(true);
+        try {
+            const backup = await collectDatabaseBackup();
+            downloadDatabaseBackup(backup, format);
+            toast.success(`Backup ${format.toUpperCase()} berhasil diunduh.`);
+        } catch (e) {
+            toast.error(`Backup gagal: ${errorMessage(e)}`);
+        } finally {
+            setBackupBusy(false);
+        }
+    }
+
+    async function validateRestoreBackup() {
+        if (!backupFile) {
+            toast.error('Pilih file backup JSON terlebih dahulu.');
+            return;
+        }
+        try {
+            const parsed: unknown = JSON.parse(await backupFile.text());
+            const result = validateDatabaseBackup(parsed);
+            setRestoreValidation(result);
+            if (result.valid) {
+                toast.success('Validasi dry-run berhasil. Tidak ada data live yang diubah.');
+            } else {
+                toast.error(`Backup tidak valid: ${result.errors[0] ?? 'Struktur/integritas tidak cocok.'}`);
+            }
+        } catch (e) {
+            const result: BackupValidationResult = {
+                valid: false,
+                errors: [e instanceof Error ? `File JSON tidak dapat dibaca: ${e.message}` : 'File JSON tidak dapat dibaca.'],
+            };
+            setRestoreValidation(result);
+            toast.error(result.errors[0] ?? 'File JSON tidak dapat dibaca.');
         }
     }
 
@@ -639,11 +720,12 @@ function Seller() {
             </div>
 
             <Tabs defaultValue="products">
-                <TabsList className="mb-6">
+                <TabsList className="mb-6 h-auto max-w-full flex-wrap justify-start">
                     <TabsTrigger value="products">Produk & Stok</TabsTrigger>
                     <TabsTrigger value="orders">Pesanan Masuk</TabsTrigger>
                     <TabsTrigger value="overview">Laporan Penjualan</TabsTrigger>
                     <TabsTrigger value="store">Profil Toko Resmi</TabsTrigger>
+                    <TabsTrigger value="database">Basis Data & Cache</TabsTrigger>
                 </TabsList>
 
                 {/* PRODUCTS TAB */}
@@ -908,6 +990,158 @@ function Seller() {
                                 <Bar dataKey="sales" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="database">
+                    <div className="space-y-6">
+                        <section className="rounded-xl border bg-card p-5">
+                            <div className="flex flex-wrap items-start justify-between gap-4">
+                                <div>
+                                    <h2 className="flex items-center gap-2 text-2xl font-bold">
+                                        <Timer className="h-5 w-5" /> Live Benchmark Cache Produk
+                                    </h2>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        Tes katalog yang sama dua kali: permintaan pertama dari database, lalu permintaan berikutnya dari cache TTL.
+                                    </p>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <Button type="button" variant="outline" onClick={refreshCatalogCache} className="gap-2">
+                                        <RefreshCw className="h-4 w-4" /> Hapus Cache / Refresh
+                                    </Button>
+                                    <Button type="button" onClick={runCatalogBenchmark} disabled={benchmarkBusy} className="gap-2">
+                                        {benchmarkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Timer className="h-4 w-4" />}
+                                        Tes Ulang MISS / HIT
+                                    </Button>
+                                </div>
+                            </div>
+                            <p className="mt-3 text-xs text-muted-foreground">
+                                Cache browser: in-memory + LocalStorage TTL 60 detik. Adapter Upstash REST opsional memakai konfigurasi server (UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN); kredensial tidak dikirim ke browser.
+                            </p>
+                            {benchmark ? (
+                                <div className="mt-5 overflow-x-auto">
+                                    <table className="w-full min-w-[32rem] text-left text-sm">
+                                        <thead>
+                                            <tr className="border-b text-xs uppercase tracking-wide text-muted-foreground">
+                                                <th className="py-2 pr-4">Status</th>
+                                                <th className="py-2 pr-4">Waktu respons</th>
+                                                <th className="py-2">Hasil</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr className="border-b">
+                                                <td className="py-3 pr-4 font-semibold">{benchmark.miss.status}</td>
+                                                <td className="py-3 pr-4 tabular-nums">{benchmark.miss.responseTimeMs.toFixed(2)} ms</td>
+                                                <td className="py-3">{benchmark.productCount} produk</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="py-3 pr-4 font-semibold">{benchmark.hit.status}</td>
+                                                <td className="py-3 pr-4 tabular-nums">{benchmark.hit.responseTimeMs.toFixed(2)} ms</td>
+                                                <td className="py-3">Data katalog tersimpan di cache</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <p className="mt-5 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                                    Jalankan tes untuk mencatat waktu MISS dan HIT dari permintaan aktual.
+                                </p>
+                            )}
+                        </section>
+
+                        <section className="rounded-xl border bg-card p-5">
+                            <h2 className="flex items-center gap-2 text-2xl font-bold">
+                                <ShieldCheck className="h-5 w-5" /> Preview Skema ORM & Keamanan
+                            </h2>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Model Drizzle mencerminkan tabel PostgreSQL yang dipakai aplikasi; tidak menjalankan migrasi atau mengubah database.
+                            </p>
+                            <div className="mt-4 grid gap-3 md:grid-cols-2">
+                                <div className="rounded-lg border p-4">
+                                    <p className="font-semibold">Product</p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        products → categories, product_variants; fields mencakup harga, gambar, spesifikasi, stok, dan status aktif.
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border p-4">
+                                    <p className="font-semibold">Order</p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        orders → order_items → products / product_variants; mencakup total, status, pembayaran, dan pengiriman.
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2 rounded-lg border p-4 text-sm">
+                                    <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                                    Parameterized Query: <strong>Aktif</strong> (Supabase query builder / ORM binding)
+                                </div>
+                                <div className="flex items-center gap-2 rounded-lg border p-4 text-sm">
+                                    <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                                    Password Hashing bcrypt: <strong>Aktif melalui Supabase Auth</strong>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section className="rounded-xl border bg-card p-5">
+                            <h2 className="flex items-center gap-2 text-2xl font-bold">
+                                <Database className="h-5 w-5" /> Backup & Uji Restore (Dry-run)
+                            </h2>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Ekspor tabel utama sesuai akses Admin saat ini. Validasi backup hanya memeriksa format, ID unik, dan relasi; tidak menulis ke database.
+                            </p>
+                            <div className="mt-4 flex flex-wrap gap-2">
+                                <Button type="button" onClick={() => exportDatabaseBackup('json')} disabled={backupBusy} className="gap-2">
+                                    {backupBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                    Download Backup (JSON)
+                                </Button>
+                                <Button type="button" variant="outline" onClick={() => exportDatabaseBackup('sql')} disabled={backupBusy} className="gap-2">
+                                    {backupBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                    Download Backup (SQL)
+                                </Button>
+                            </div>
+                            <div className="mt-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                                <div className="space-y-2">
+                                    <Label htmlFor="restore-backup">File backup JSON untuk divalidasi</Label>
+                                    <Input
+                                        id="restore-backup"
+                                        type="file"
+                                        accept=".json,application/json"
+                                        onChange={(event) => {
+                                            setBackupFile(event.currentTarget.files?.[0] ?? null);
+                                            setRestoreValidation(null);
+                                        }}
+                                    />
+                                </div>
+                                <Button type="button" variant="outline" onClick={validateRestoreBackup} className="gap-2">
+                                    <FileCheck2 className="h-4 w-4" /> Uji Validasi Restore
+                                </Button>
+                            </div>
+                            {restoreValidation && (
+                                <div
+                                    className={`mt-4 rounded-lg border p-4 text-sm ${
+                                        restoreValidation.valid
+                                            ? 'border-emerald-500/30 bg-emerald-500/5'
+                                            : 'border-destructive/30 bg-destructive/5'
+                                    }`}
+                                    role="status"
+                                >
+                                    {restoreValidation.valid ? (
+                                        <>
+                                            <p className="font-semibold">Dry-run valid; data live tidak berubah.</p>
+                                            <p className="mt-1 text-muted-foreground">
+                                                {Object.entries(restoreValidation.counts)
+                                                    .map(([table, count]) => `${table}: ${count}`)
+                                                    .join(' · ')}
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <ul className="list-inside list-disc space-y-1">
+                                            {restoreValidation.errors.slice(0, 5).map((message) => (
+                                                <li key={message}>{message}</li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                            )}
+                        </section>
                     </div>
                 </TabsContent>
 
