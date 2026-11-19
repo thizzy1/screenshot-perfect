@@ -9,7 +9,7 @@ export const Route = createFileRoute("/api/public/product-image")({
       GET: async ({ request }) => {
         const p = new URL(request.url).searchParams.get("p") ?? "";
         if (!PATH_RE.test(p)) return new Response("Not found", { status: 404 });
-        const owner = p.split("/")[0];
+        const owner = p.split("/")[0] ?? "";
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const [{ data: store }, { data: admin }] = await Promise.all([
           supabaseAdmin.from("stores").select("id").eq("owner_id", owner).eq("status", "verified").limit(1).maybeSingle(),
