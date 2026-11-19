@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { payOrder } from '@/lib/commerce.functions';
 import { formatIDR, errorMessage, TRACK_STEPS, ORDER_STATUS, trackIndex } from '@/lib/format';
 import { productImageBlendClass, productImageFrameClass } from '@/lib/product-image';
+import { ProductImage } from '@/components/store/ProductImage';
 import { sizeLabel } from '@/lib/sizing';
 import { StatusBadge } from '@/components/store/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -106,7 +107,7 @@ function OrderPage() {
                                 <div key={item.id} className="flex min-w-0 items-center gap-4 overflow-hidden border-b py-4">
                                     {item.image && (
                                         <div className={`h-20 w-20 shrink-0 overflow-hidden rounded-md ${productImageFrameClass}`}>
-                                            <img
+                                            <ProductImage
                                                 src={item.image}
                                                 alt={item.name}
                                                 className={`h-full w-full rounded-md object-contain p-1 ${productImageBlendClass(item.image)}`}

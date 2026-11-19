@@ -6,6 +6,7 @@ import { useCart } from "@/lib/cart";
 import { formatIDR } from "@/lib/format";
 import { productImageBlendClass, productImageFrameClass } from "@/lib/product-image";
 import { sizeLabel } from "@/lib/sizing";
+import { ProductImage } from "@/components/store/ProductImage";
 
 export function CartLines({ compact = false }: { compact?: boolean }) {
   const cart = useCart();
@@ -15,7 +16,7 @@ export function CartLines({ compact = false }: { compact?: boolean }) {
         <li key={i.variantId} className="flex min-w-0 gap-3 overflow-hidden py-4">
           {i.image && (
             <div className={`h-20 w-20 shrink-0 overflow-hidden rounded-2xl ${productImageFrameClass}`}>
-              <img src={i.image} alt={i.name} className={`h-full w-full rounded-2xl object-contain p-1 ${productImageBlendClass(i.image)}`} />
+              <ProductImage src={i.image} alt={i.name} className={`h-full w-full rounded-2xl object-contain p-1 ${productImageBlendClass(i.image)}`} />
             </div>
           )}
           <div className="min-w-0 flex-1">

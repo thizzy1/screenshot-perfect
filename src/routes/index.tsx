@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProductCard, ProductCardSkeleton } from "@/components/store/ProductCard";
 import { CutoutImage } from "@/components/store/CutoutImage";
+import { extractProductImageSource } from "@/lib/product-image";
 import { catalogQuery, categoriesQuery, type CatalogProduct } from "@/lib/queries";
 import { mergeCategories, getCategoryLabel } from "@/lib/categories";
 import { useI18n } from "@/lib/i18n";
@@ -84,8 +85,15 @@ function Home() {
   const nextHero = () => setHeroIdx((prev) => (prev + 1) % heroList.length);
   const prevHero = () => setHeroIdx((prev) => (prev - 1 + heroList.length) % heroList.length);
 
-  const heroCutoutImage = (currentHero?.specs as Record<string, string> | undefined)?.['banner_image'] || currentHero?.images?.[0];
-  const spotlightCutoutImage = (spotlightProduct?.specs as Record<string, string> | undefined)?.['banner_image'] || spotlightProduct?.images?.[0];
+  const heroSpecs = (currentHero?.specs ?? {}) as Record<string, unknown>;
+  const spotlightSpecs = (spotlightProduct?.specs ?? {}) as Record<string, unknown>;
+  const heroCutoutImage =
+    extractProductImageSource(heroSpecs["banner_image"] ?? heroSpecs["banner_cutout_url"] ?? heroSpecs["image_url"]) ??
+    extractProductImageSource(currentHero?.images?.[0]);
+  const spotlightCutoutImage =
+    extractProductImageSource(
+      spotlightSpecs["banner_image"] ?? spotlightSpecs["banner_cutout_url"] ?? spotlightSpecs["image_url"],
+    ) ?? extractProductImageSource(spotlightProduct?.images?.[0]);
 
   return (
     <div>

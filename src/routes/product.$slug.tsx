@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, ShieldCheck, Truck } from "lucide-react";
+import { ChevronLeft, ChevronRight, ShieldCheck, Truck, X } from "lucide-react";
 import { productQuery, catalogQuery } from "@/lib/queries";
 import { formatIDR } from "@/lib/format";
 import { useCart } from "@/lib/cart";
@@ -12,11 +12,12 @@ import { isUserBanned, bannedReason } from "@/lib/user-access";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
 import { ProductCard } from "@/components/store/ProductCard";
+import { ProductImage } from "@/components/store/ProductImage";
 import { SizeGuideModal } from "@/components/store/SizeGuideModal";
 import { cn } from "@/lib/utils";
-import { productImageBlendClass, productImageFrameClass } from '@/lib/product-image';
+import { extractProductImageSource, productImageBlendClass, productImageFrameClass } from '@/lib/product-image';
 import { isAccessoriesCategory, isOthersCategory, type SizeGroup, sizeModeForCategory, sizeOptionsForMode, oneSizeValue, kidsShoeSizes } from '@/lib/sizing';
 import { useI18n } from '@/lib/i18n';
 import { getCategoryLabel } from '@/lib/categories';
@@ -100,8 +101,12 @@ function ProductPage() {
   const categoryLabel = getCategoryLabel(categorySlug || p.category?.name, lang);
 
   const variantValues = hasOnlyOneSize ? [oneSizeValue] : sizeOptionsForMode(finalMode, isApparel ? 'apparel' : group);
-  const prevImage = () => setImg((prev) => (p.images.length ? (prev - 1 + p.images.length) % p.images.length : 0));
-  const nextImage = () => setImg((prev) => (p.images.length ? (prev + 1) % p.images.length : 0));
+  const productImages = (Array.isArray(p.images) ? p.images : [])
+    .map(extractProductImageSource)
+    .filter((source): source is string => Boolean(source));
+  const activeImageIndex = productImages.length ? img % productImages.length : 0;
+  const prevImage = () => setImg((prev) => (productImages.length ? (prev - 1 + productImages.length) % productImages.length : 0));
+  const nextImage = () => setImg((prev) => (productImages.length ? (prev + 1) % productImages.length : 0));
   const variants = variantValues.map((value) => {
     if (value === oneSizeValue) {
       const oneSizeVariant = p.variants.find((variant) => variant.size === oneSizeValue);
@@ -121,12 +126,12 @@ function ProductPage() {
       return;
     }
     if (!selected || selected.stock < 1) { toast.error(finalMode === 'one-size' ? 'Produk ini sedang habis stok.' : 'Please choose an available size'); return; }
-    cart.add({ variantId: selected.id, productId: p.id, slug: p.slug, name: p.name, size: selected.size, price: p.price, image: p.images[0] ?? null, storeName: "SEAPORT OFFICIAL", maxStock: selected.stock });
+    cart.add({ variantId: selected.id, productId: p.id, slug: p.slug, name: p.name, size: selected.size, price: p.price, image: productImages[0] ?? null, storeName: "SEAPORT OFFICIAL", maxStock: selected.stock });
     if (buy) navigate({ to: "/checkout" });
     else { toast.success("Added to cart"); cart.setOpen(true); }
   };
   const specs = Object.entries((p.specs ?? {}) as Record<string, string>).filter(([key]) => !['banner_image', 'size_mode'].includes(key));
-  const mainImage = p.images[img];
+  const mainImage = productImages[activeImageIndex];
   const mainImageBlendClass = productImageBlendClass(mainImage);
 
   return (
@@ -134,61 +139,61 @@ function ProductPage() {
       <div className="grid gap-10 md:grid-cols-2">
         <div className="min-w-0 w-full space-y-3">
           <div className="relative aspect-square w-full overflow-hidden rounded-3xl bg-card shadow-card">
-            {p.images[img] ? (
-              <img
-                src={p.images[img]}
+            {mainImage ? (
+              <ProductImage
+                src={mainImage}
                 alt={p.name}
                 onClick={() => setLightboxOpen(true)}
-                className="h-full w-full object-contain cursor-zoom-in"
+                className="object-contain cursor-zoom-in"
               />
             ) : (
               <div className="flex aspect-square w-full items-center justify-center bg-muted text-muted-foreground">
                 No image available
               </div>
             )}
-            {p.images.length > 1 && (
+            {productImages.length > 1 && (
               <>
-                <button type="button" aria-label="Previous image" onClick={prevImage} className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border bg-background/80 text-foreground shadow-sm backdrop-blur">
+                <button type="button" aria-label="Previous image" onClick={prevImage} className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border bg-background/80 text-foreground shadow-sm backdrop-blur">
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                <button type="button" aria-label="Next image" onClick={nextImage} className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border bg-background/80 text-foreground shadow-sm backdrop-blur">
+                <button type="button" aria-label="Next image" onClick={nextImage} className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border bg-background/80 text-foreground shadow-sm backdrop-blur">
                   <ChevronRight className="h-4 w-4" />
                 </button>
                 <Badge
                   variant="secondary"
-                  className="absolute bottom-3 right-3 bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm"
+                  className="absolute bottom-3 right-3 z-20 bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm"
                 >
-                  POV {img + 1} / {p.images.length}
+                  POV {activeImageIndex + 1} / {productImages.length}
                 </Badge>
               </>
             )}
           </div>
-          {p.images.length > 1 && (
+          {productImages.length > 1 && (
             <div
               className="flex min-w-0 w-full gap-2.5 overflow-x-auto pb-1.5 scrollbar-none"
               role="tablist"
               aria-label="Sudut Foto Produk (POV Gallery)"
             >
-              {p.images.map((src, i) => (
+              {productImages.map((src, i) => (
                 <button
                   key={src + i}
                   type="button"
                   onClick={() => setImg(i)}
                   aria-label={`Lihat POV foto ${i + 1}`}
                   className={cn(
-                    "relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-2 transition-all hover:opacity-100",
-                    i === img
+                    "relative z-20 h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-2 transition-all hover:opacity-100",
+                    i === activeImageIndex
                       ? "border-primary ring-2 ring-primary/40 shadow-sm"
                       : "border-border opacity-70 hover:border-foreground/50"
                   )}
                 >
-                  <img
+                  <ProductImage
                     src={src}
                     alt={`${p.name} POV ${i + 1}`}
-                    className="h-full w-full object-cover"
+                    className="object-contain"
                   />
                   {i === 0 && (
-                    <span className="absolute bottom-0 inset-x-0 bg-primary/90 text-[9px] font-bold text-primary-foreground py-0.5 text-center tracking-wider uppercase">
+                    <span className="absolute bottom-0 inset-x-0 z-20 bg-primary/90 text-[9px] font-bold text-primary-foreground py-0.5 text-center tracking-wider uppercase">
                       Cover
                     </span>
                   )}
@@ -301,21 +306,29 @@ function ProductPage() {
 
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
         <DialogContent
+          showCloseButton={false}
           className={`max-w-5xl overflow-hidden border-0 p-0 shadow-none ${productImageFrameClass}`}
         >
+          <DialogClose
+            aria-label="Close image"
+            className="absolute right-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white opacity-90 shadow-sm backdrop-blur transition hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            <X className="h-5 w-5" />
+            <span className="sr-only">Close image</span>
+          </DialogClose>
           <div className={`relative flex min-w-0 items-center justify-center overflow-hidden ${productImageFrameClass}`}>
-            {p.images.length > 1 && (
+            {productImages.length > 1 && (
               <button type="button" aria-label="Previous image" onClick={prevImage} className="absolute left-4 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white">
                 <ChevronLeft className="h-5 w-5" />
               </button>
             )}
-            {p.images.length > 1 && (
+            {productImages.length > 1 && (
               <button type="button" aria-label="Next image" onClick={nextImage} className="absolute right-12 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white">
                 <ChevronRight className="h-5 w-5" />
               </button>
             )}
-            {p.images[img] ? (
-              <img src={p.images[img]} alt={p.name} className={`max-h-[85vh] w-full rounded-lg object-contain p-4 md:p-8 ${mainImageBlendClass}`} />
+            {mainImage ? (
+              <ProductImage src={mainImage} alt={p.name} className={`max-h-[85vh] w-full rounded-lg object-contain p-4 md:p-8 ${mainImageBlendClass}`} />
             ) : null}
           </div>
         </DialogContent>

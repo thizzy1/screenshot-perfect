@@ -54,6 +54,8 @@ import {
 import { useI18n } from '@/lib/i18n';
 import { mergeCategories, getCategoryLabel, ensureCategoryInDb } from '@/lib/categories';
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip } from 'recharts';
+import { ProductImage } from '@/components/store/ProductImage';
+import { extractProductImageSource } from '@/lib/product-image';
 import { benchmarkCatalogCache } from '@/lib/queries';
 import { clearCatalogCache } from '@/lib/catalog-cache';
 import { clearServerCatalogCache } from '@/lib/catalog-cache.functions';
@@ -391,12 +393,22 @@ function Seller() {
         if (product) {
             setEditing(product);
             setActive(product.is_active);
-            setProductImages(Array.isArray(product.images) ? [...product.images] : []);
+            setProductImages(
+                Array.isArray(product.images)
+                    ? product.images
+                        .map(extractProductImageSource)
+                        .filter((image): image is string => Boolean(image))
+                    : []
+            );
             const specsObj =
                 product.specs && typeof product.specs === 'object'
                     ? (product.specs as Record<string, any>)
                     : {};
-            setBannerImage(typeof specsObj['banner_image'] === 'string' ? specsObj['banner_image'] : '');
+            setBannerImage(
+                extractProductImageSource(
+                    specsObj['banner_image'] ?? specsObj['banner_cutout_url'] ?? specsObj['image_url']
+                ) ?? ''
+            );
             const existingVars = product.variants.map((v) => ({ size: v.size, stock: v.stock }));
             const entries = Object.entries(specsObj)
                 .filter(([key]) => !['banner_image', 'size_mode'].includes(key))
@@ -756,16 +768,21 @@ function Seller() {
                         {products?.map((p) => {
                             const totalStock = p.variants.reduce((s, v) => s + v.stock, 0);
                             const specs = (p.specs && typeof p.specs === 'object' ? p.specs : {}) as Record<string, any>;
-                            const hasBannerCutout = !!specs['banner_image'];
+                            const hasBannerCutout = Boolean(
+                                extractProductImageSource(
+                                    specs['banner_image'] ?? specs['banner_cutout_url'] ?? specs['image_url']
+                                )
+                            );
+                            const coverImage = extractProductImageSource(p.images?.[0]);
 
                             return (
                                 <div key={p.id} className="flex flex-wrap items-center gap-4 py-4">
-                                    {p.images[0] && (
+                                    {coverImage && (
                                         <div className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-lg ${productImageFrameClass}`}>
-                                            <img
-                                                src={p.images[0]}
+                                            <ProductImage
+                                                src={coverImage}
                                                 alt={p.name}
-                                                className={`h-full w-full rounded-lg object-contain p-1 ${productImageBlendClass(p.images[0])}`}
+                                                className={`h-full w-full rounded-lg object-contain p-1 ${productImageBlendClass(coverImage)}`}
                                             />
                                             {p.images.length > 1 && (
                                                 <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1 py-0.5 text-[10px] font-bold text-white">
@@ -1374,7 +1391,7 @@ function Seller() {
                                             className="group relative min-w-0 overflow-hidden rounded-xl border bg-card p-1.5 shadow-sm"
                                         >
                                             <div className={`relative aspect-square w-full overflow-hidden rounded-lg ${productImageFrameClass}`}>
-                                                <img
+                                                <ProductImage
                                                     src={url}
                                                     alt={`POV ${idx + 1}`}
                                                     className={`h-full w-full rounded-lg object-contain p-1 ${productImageBlendClass(url)}`}
@@ -1442,7 +1459,7 @@ function Seller() {
                             {bannerImage ? (
                                 <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-3">
                                     <div className="relative h-16 w-16 shrink-0 rounded-lg bg-black/5 p-1 border">
-                                        <img
+                                        <ProductImage
                                             src={bannerImage}
                                             alt="Banner Cutout"
                                             className="h-full w-full object-contain"

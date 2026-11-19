@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { resolveProductImageUrl } from "@/lib/product-image";
 
 const cutoutCache = new Map<string, string>();
 
-interface CutoutImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
-  src: string;
+interface CutoutImageProps extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, "src"> {
+  src: unknown;
   alt?: string;
   className?: string;
 }
@@ -13,20 +14,42 @@ function px(d: Uint8ClampedArray, idx: number): [number, number, number, number]
   return [d[idx] ?? 0, d[idx + 1] ?? 0, d[idx + 2] ?? 0, d[idx + 3] ?? 255];
 }
 
-export function CutoutImage({ src, alt = "", className, ...props }: CutoutImageProps) {
-  const [currentSrc, setCurrentSrc] = useState<string>(() => cutoutCache.get(src) || src);
+export function CutoutImage({ src, alt = "", className, onError, ...props }: CutoutImageProps) {
+  const [resolvedSrc, setResolvedSrc] = useState<string>();
+  const [currentSrc, setCurrentSrc] = useState<string>();
 
   useEffect(() => {
-    if (!src) return;
-    if (cutoutCache.has(src)) {
-      setCurrentSrc(cutoutCache.get(src)!);
+    let isMounted = true;
+    setResolvedSrc(undefined);
+    setCurrentSrc(undefined);
+    void resolveProductImageUrl(src)
+      .then((url) => {
+        if (isMounted) setResolvedSrc(url);
+      })
+      .catch((error: unknown) => {
+        console.warn("Could not resolve a cutout image URL.", error);
+        if (isMounted) setResolvedSrc(undefined);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [src]);
+
+  useEffect(() => {
+    if (!resolvedSrc) {
+      setCurrentSrc(undefined);
+      return;
+    }
+    if (cutoutCache.has(resolvedSrc)) {
+      setCurrentSrc(cutoutCache.get(resolvedSrc)!);
       return;
     }
 
     let isMounted = true;
     const img = new Image();
     img.crossOrigin = "anonymous";
-    img.src = src;
+    img.src = resolvedSrc;
 
     img.onload = () => {
       try {
@@ -100,27 +123,37 @@ export function CutoutImage({ src, alt = "", className, ...props }: CutoutImageP
 
           ctx.putImageData(imgData, 0, 0);
           const dataUrl = canvas.toDataURL("image/png");
-          cutoutCache.set(src, dataUrl);
+          cutoutCache.set(resolvedSrc, dataUrl);
           if (isMounted) setCurrentSrc(dataUrl);
         } else {
           // Already transparent or non-white background
-          cutoutCache.set(src, src);
-          if (isMounted) setCurrentSrc(src);
+          cutoutCache.set(resolvedSrc, resolvedSrc);
+          if (isMounted) setCurrentSrc(resolvedSrc);
         }
       } catch {
-        // Fallback gracefully on CORS or canvas errors
-        if (isMounted) setCurrentSrc(src);
+        if (isMounted) setCurrentSrc(resolvedSrc);
       }
     };
 
     img.onerror = () => {
-      if (isMounted) setCurrentSrc(src);
+      if (isMounted) setCurrentSrc(undefined);
     };
 
     return () => {
       isMounted = false;
     };
-  }, [src]);
+  }, [resolvedSrc]);
 
-  return <img src={currentSrc} alt={alt} className={className} {...props} />;
+  return currentSrc ? (
+    <img
+      {...props}
+      src={currentSrc}
+      alt={alt}
+      className={className}
+      onError={(event) => {
+        setCurrentSrc(undefined);
+        onError?.(event);
+      }}
+    />
+  ) : null;
 }
