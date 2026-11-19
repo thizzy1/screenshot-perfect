@@ -200,7 +200,8 @@ export async function ensureCategoryInDb(slug: string, defaultName?: string): Pr
   const { data: existing } = await supabase
     .from('categories')
     .select('id, slug')
-    .or(`slug.eq.${slug},slug.eq.${normalized}`)
+    .in('slug', Array.from(new Set([slug, normalized])))
+    .limit(1)
     .maybeSingle();
 
   if (existing?.id) {
