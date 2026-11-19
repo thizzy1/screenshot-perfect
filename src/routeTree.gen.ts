@@ -21,6 +21,7 @@ import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedSellerRouteImport } from './routes/_authenticated/seller'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as AuthenticatedOrderIdRouteImport } from './routes/_authenticated/order.$id'
+import { Route as ApiPublicProductImageRouteImport } from './routes/api/public/product-image'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -81,6 +82,11 @@ const AuthenticatedOrderIdRoute = AuthenticatedOrderIdRouteImport.update({
   path: '/order/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicProductImageRoute = ApiPublicProductImageRouteImport.update({
+  id: '/api/public/product-image',
+  path: '/api/public/product-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/seller': typeof AuthenticatedSellerRoute
   '/product/$slug': typeof ProductSlugRoute
   '/order/$id': typeof AuthenticatedOrderIdRoute
+  '/api/public/product-image': typeof ApiPublicProductImageRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/seller': typeof AuthenticatedSellerRoute
   '/product/$slug': typeof ProductSlugRoute
   '/order/$id': typeof AuthenticatedOrderIdRoute
+  '/api/public/product-image': typeof ApiPublicProductImageRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/_authenticated/seller': typeof AuthenticatedSellerRoute
   '/product/$slug': typeof ProductSlugRoute
   '/_authenticated/order/$id': typeof AuthenticatedOrderIdRoute
+  '/api/public/product-image': typeof ApiPublicProductImageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -137,6 +146,7 @@ export interface FileRouteTypes {
     | '/seller'
     | '/product/$slug'
     | '/order/$id'
+    | '/api/public/product-image'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/seller'
     | '/product/$slug'
     | '/order/$id'
+    | '/api/public/product-image'
   id:
     | '__root__'
     | '/'
@@ -164,6 +175,7 @@ export interface FileRouteTypes {
     | '/_authenticated/seller'
     | '/product/$slug'
     | '/_authenticated/order/$id'
+    | '/api/public/product-image'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -174,6 +186,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ShopRoute: typeof ShopRoute
   ProductSlugRoute: typeof ProductSlugRoute
+  ApiPublicProductImageRoute: typeof ApiPublicProductImageRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -262,6 +275,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOrderIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/product-image': {
+      id: '/api/public/product-image'
+      path: '/api/public/product-image'
+      fullPath: '/api/public/product-image'
+      preLoaderRoute: typeof ApiPublicProductImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -292,6 +312,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ShopRoute: ShopRoute,
   ProductSlugRoute: ProductSlugRoute,
+  ApiPublicProductImageRoute: ApiPublicProductImageRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

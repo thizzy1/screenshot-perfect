@@ -1,3 +1,4 @@
+import { useAuth } from '@/hooks/useAuth';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useServerFn } from '@tanstack/react-start';
@@ -30,6 +31,7 @@ function OrderPage() {
     const { id } = Route.useParams();
     const qc = useQueryClient();
     const pay = useServerFn(payOrder);
+    const { hasRole } = useAuth();
     const [busy, setBusy] = useState(false);
     const { data: orders, isPending, error } = useQuery({
         queryKey: ['checkout', id],
@@ -54,7 +56,7 @@ function OrderPage() {
                 await pay({ data: id });
             }
             await qc.invalidateQueries();
-            toast.success(cancel ? 'Order cancelled' : 'Demo payment confirmed');
+            toast.success(cancel ? 'Order cancelled' : 'Payment confirmed');
         } catch (e) {
             toast.error(errorMessage(e));
         } finally {
@@ -148,7 +150,7 @@ function OrderPage() {
             ))}
             {orders.some((order) => order.status === 'pending_payment') && (
                 <div className="flex gap-3">
-                    <Button disabled={busy} onClick={() => action()}>Simulate payment</Button>
+                    {hasRole('admin') && <Button disabled={busy} onClick={() => action()}>Confirm payment received</Button>}
                     <Button variant="outline" disabled={busy} onClick={() => action(true)}>Cancel unpaid order</Button>
                 </div>
             )}

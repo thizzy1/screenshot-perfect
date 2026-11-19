@@ -1,0 +1,3 @@
+CREATE OR REPLACE FUNCTION public.simulate_payment(_checkout uuid)
+ RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
+AS $function$ BEGIN PERFORM public.require_active_account(); IF NOT public.has_role(auth.uid(),'admin') THEN RAISE EXCEPTION 'Only an administrator can confirm payment'; END IF; PERFORM id FROM public.orders WHERE checkout_id=_checkout ORDER BY id FOR UPDATE; IF NOT EXISTS(SELECT 1 FROM public.orders WHERE checkout_id=_checkout AND status='pending_payment') THEN RAISE EXCEPTION 'No unpaid order found'; END IF; UPDATE public.orders SET status='paid',paid_at=now() WHERE checkout_id=_checkout AND status='pending_payment'; END $function$;
